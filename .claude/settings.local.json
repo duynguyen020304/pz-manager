@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "WebSearch",
+      "Bash(systemctl:*)",
+      "Bash(chmod:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(getenforce:*)",
+      "Bash(chcon:*)",
+      "Bash(ss:*)",
+      "Bash(curl:*)",
+      "Bash(tmux list-sessions:*)",
+      "Bash(tmux ls:*)",
+      "Bash(pgrep:*)",
+      "Bash(lsof:*)",
+      "Bash(tmux send-keys:*)",
+      "Bash(tmux capture-pane:*)",
+      "Bash(netstat:*)",
+      "Bash(ls:*)",
+      "Bash(tmux list-panes:*)",
+      "Bash(npx tsc:*)",
+      "Bash(bash -n:*)",
+      "Bash(/root/Zomboid/backup-system/bin/restore.sh:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

@@ -1,0 +1,168 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+  LayoutDashboard, 
+  Server, 
+  Clock, 
+  FileText, 
+  Settings, 
+  LogOut,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Shield
+} from 'lucide-react';
+import { useState } from 'react';
+import { logout } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { useSidebar } from '@/components/providers/sidebar-provider';
+
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Servers', href: '/servers', icon: Server },
+  { name: 'Schedules', href: '/schedules', icon: Clock },
+  { name: 'Logs', href: '/logs', icon: FileText },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isCollapsed, toggle } = useSidebar();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  return (
+    <>
+      {/* Mobile menu button */}
+      <div className="lg:hidden fixed top-4 left-4 z-50">
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 bg-card border border-border rounded-md text-foreground"
+        >
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      {/* Mobile overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`inset-y-0 left-0 z-50 bg-card border-r border-border transition-all duration-300 ease-in-out shrink-0 ${
+          isCollapsed ? 'w-16' : 'w-60'
+        } static translate-x-0 max-lg:fixed max-lg:-translate-x-full ${
+          isMobileMenuOpen ? '!translate-x-0' : ''
+        }`}
+      >
+        <div className="h-full flex flex-col">
+          {/* Logo */}
+          <div className={`p-3 border-b border-border transition-all duration-300 ${isCollapsed ? 'px-3' : 'px-6'}`}>
+            <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                <Shield className="w-5 h-5 text-primary-foreground" />
+              </div>
+              {!isCollapsed && (
+                <div>
+                  <h1 className="text-lg font-bold text-foreground leading-tight">
+                    Zomboid
+                  </h1>
+                  <p className="text-[10px] text-muted-foreground">
+                    Backup Manager
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-3 space-y-1">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              const Icon = item.icon;
+              
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  title={isCollapsed ? item.name : undefined}
+                  className={`flex items-center justify-center rounded-md transition-all duration-200 group relative min-h-[44px] ${
+                    isCollapsed ? 'px-2' : 'gap-3 px-4'
+                  } ${
+                    isActive 
+                      ? 'bg-primary/10 text-primary border border-primary/20' 
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  {!isCollapsed && (
+                    <span className="font-medium text-sm leading-none">{item.name}</span>
+                  )}
+                  {isCollapsed && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-card border border-border rounded-md text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                      {item.name}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Collapse toggle */}
+          <div className="p-3 border-t border-border">
+            <button
+              onClick={toggle}
+              className={`flex items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] w-full ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-3'}`}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="w-5 h-5 flex-shrink-0" />
+              ) : (
+                <>
+                  <ChevronLeft className="w-5 h-5 flex-shrink-0" />
+                  <span className="font-medium text-sm leading-none">Collapse</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Logout */}
+          <div className={`p-3 border-t border-border ${isCollapsed ? 'px-2' : ''}`}>
+            <button
+              onClick={handleLogout}
+              title={isCollapsed ? 'Logout' : undefined}
+              className={`flex items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors group relative min-h-[44px] w-full ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              {!isCollapsed && (
+                <span className="font-medium text-sm leading-none">Logout</span>
+              )}
+              {isCollapsed && (
+                <div className="absolute left-full ml-2 px-2 py-1 bg-card border border-border rounded-md text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                  Logout
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}
