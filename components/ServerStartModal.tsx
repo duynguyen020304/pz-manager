@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useStartServer, useRestoreJob, useInstallations } from '@/hooks/use-api';
+import { useStartServer, useAbortStart, useRestoreJob, useInstallations } from '@/hooks/use-api';
 import { ServerJob, RestoreJob } from '@/types';
-import { 
-  X, 
-  Play, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  X,
+  Play,
+  Loader2,
+  CheckCircle2,
   AlertCircle,
   Terminal,
-  Bug
+  Bug,
+  XCircle as XCircleIcon
 } from 'lucide-react';
 
 // Type guard to check if job is a ServerJob
@@ -28,8 +29,10 @@ interface ServerStartModalProps {
 export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: ServerStartModalProps) {
   const [debugMode, setDebugMode] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
-  
+  const [elapsedTime, setElapsedTime] = useState(0);
+
   const startServer = useStartServer();
+  const abortStart = useAbortStart();
   const { data: job, isLoading: isPollingJob } = useRestoreJob(jobId);
   const { data: installations } = useInstallations();
 
@@ -45,6 +48,27 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
     }
   }, [job?.status, onSuccess, onClose]);
 
+  // Track elapsed time
+  useEffect(() => {
+    if (!job || (job.status !== 'pending' && job.status !== 'running')) {
+      setElapsedTime(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setElapsedTime(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [job?.status]);
+
+  // Format elapsed time helper
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
   // Handle start button click
   const handleStart = async () => {
     try {
@@ -55,6 +79,19 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
       setJobId(result.jobId);
     } catch (error) {
       console.error('Failed to start server:', error);
+    }
+  };
+
+  // Handle abort button click
+  const handleAbort = async () => {
+    if (jobId) {
+      try {
+        await abortStart.mutateAsync({ serverName, jobId });
+        setJobId(null);
+        setDebugMode(false);
+      } catch (error) {
+        console.error('Failed to abort:', error);
+      }
     }
   };
 
@@ -159,10 +196,10 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-primary transition-all duration-500 ease-out"
                     style={{ width: `${job?.progress || 0}%` }}
                   />
@@ -171,6 +208,13 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
                   {job?.message || 'Initializing...'}
                 </p>
               </div>
+
+              <div className="text-center text-xs text-muted-foreground">
+                Elapsed time: {formatTime(elapsedTime)}
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Starting may take several minutes for modded servers
+              </p>
             </div>
           )}
 
@@ -224,34 +268,55 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
         {/* Footer */}
         <div className="flex gap-3 p-6 border-t border-border">
           {!isStarting && !isCompleted && (
-            <button
-              onClick={handleClose}
-              className="flex-1 px-4 py-2 border border-border rounded-md text-foreground hover:bg-muted transition-colors"
-            >
-              Cancel
-            </button>
+            <>
+              <button
+                onClick={handleClose}
+                className="flex-1 px-4 py-2 border border-border rounded-md text-foreground hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStart}
+                disabled={startServer.isPending}
+                className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {startServer.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    Start Server
+                  </>
+                )}
+              </button>
+            </>
           )}
-          
-          {!isStarting && !isCompleted && !isFailed && (
-            <button
-              onClick={handleStart}
-              disabled={startServer.isPending}
-              className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {startServer.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Starting...
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  Start Server
-                </>
-              )}
-            </button>
+
+          {isStarting && (
+            <>
+              <button
+                onClick={handleAbort}
+                disabled={abortStart.isPending}
+                className="flex-1 px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {abortStart.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Aborting...
+                  </>
+                ) : (
+                  <>
+                    <XCircleIcon className="w-4 h-4" />
+                    Abort
+                  </>
+                )}
+              </button>
+            </>
           )}
-          
+
           {isFailed && (
             <button
               onClick={() => {
@@ -263,7 +328,7 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
               Try Again
             </button>
           )}
-          
+
           {isCompleted && (
             <button
               onClick={handleClose}

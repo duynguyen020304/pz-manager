@@ -13,9 +13,10 @@ const statusCache = new Map<string, { status: ServerStatus; timestamp: number }>
 const STATUS_CACHE_TTL = 5000; // 5 seconds
 
 // Server startup timeout constants (in seconds)
-const PROCESS_SPAWN_TIMEOUT = 240;  // 4 minutes - wait for PID to appear
-const PORT_BINDING_TIMEOUT = 120;   // 2 minutes - wait for port to bind
-const POLL_INTERVAL_MS = 1000;      // 1 second between checks
+// Set to 1 hour (3600s) - effectively infinite, users can abort via UI
+const PROCESS_SPAWN_TIMEOUT = 3600;  // 1 hour - wait for PID to appear
+const PORT_BINDING_TIMEOUT = 3600;    // 1 hour - wait for port to bind
+const POLL_INTERVAL_MS = 1000;       // 1 second between checks
 
 // Default PZ installation
 const DEFAULT_INSTALLATION: PZInstallation = {
@@ -36,7 +37,54 @@ const BASE_PORTS = {
 const PORT_INCREMENT = 10;
 
 /**
+ * Check if default PZ ports are available
+ */
+async function areDefaultPortsAvailable(): Promise<boolean> {
+  try {
+    // Check all three required ports
+    const defaultPortAvailable = !(await isPortBound(BASE_PORTS.defaultPort));
+    const udpPortAvailable = !(await isPortBound(BASE_PORTS.udpPort));
+    const rconPortAvailable = !(await isPortBound(BASE_PORTS.rconPort));
+
+    return defaultPortAvailable && udpPortAvailable && rconPortAvailable;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Calculate ports for a server based on availability
+ * Uses default ports if available, otherwise uses index-based calculation
+ */
+async function calculatePortsSmart(
+  serverName: string,
+  servers: string[]
+): Promise<{ defaultPort: number; udpPort: number; rconPort: number }> {
+  // First try to use default ports (for single-server scenarios)
+  if (await areDefaultPortsAvailable()) {
+    console.log(`Using default ports for ${serverName}: ${BASE_PORTS.defaultPort}/${BASE_PORTS.udpPort}/${BASE_PORTS.rconPort}`);
+    return BASE_PORTS;
+  }
+
+  // Fall back to index-based calculation
+  const index = servers.indexOf(serverName);
+  if (index === -1) {
+    return BASE_PORTS;
+  }
+
+  const ports = {
+    defaultPort: BASE_PORTS.defaultPort + (index * PORT_INCREMENT),
+    udpPort: BASE_PORTS.udpPort + (index * PORT_INCREMENT),
+    rconPort: BASE_PORTS.rconPort + (index * PORT_INCREMENT)
+  };
+
+  console.log(`Using indexed ports for ${serverName} (index ${index}): ${ports.defaultPort}/${ports.udpPort}/${ports.rconPort}`);
+  return ports;
+}
+
+/**
  * Calculate ports for a server based on its index in the config
+ * @deprecated Use calculatePortsSmart instead
  */
 function calculatePorts(serverName: string, servers: string[]): { defaultPort: number; udpPort: number; rconPort: number } {
   const index = servers.indexOf(serverName);
@@ -107,6 +155,24 @@ async function isPortBound(port: number): Promise<boolean> {
 }
 
 /**
+ * Get the actual port a server is listening on
+ */
+async function getActualServerPort(serverName: string): Promise<number | null> {
+  try {
+    // Find the PID
+    const pid = await findServerPid(serverName);
+    if (!pid) return null;
+
+    // Check which port this PID is bound to
+    const { stdout } = await execAsync(`ss -ulnp | grep ${pid} || true`);
+    const match = stdout.match(/:(\d+)\s/);
+    return match ? parseInt(match[1], 10) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Get the status of a single server
  */
 export async function getServerStatus(serverName: string): Promise<ServerStatus> {
@@ -142,7 +208,10 @@ export async function getServerStatus(serverName: string): Promise<ServerStatus>
     // Estimate startedAt from uptime (rough approximation)
     startedAt = new Date();
   }
-  
+
+  // Get the actual port if server is running
+  const actualPort = state === 'running' ? await getActualServerPort(serverName) || undefined : undefined;
+
   const status: ServerStatus = {
     name: serverName,
     state,
@@ -150,6 +219,7 @@ export async function getServerStatus(serverName: string): Promise<ServerStatus>
     tmuxSession: hasSession ? tmuxSession : undefined,
     uptime,
     ports,
+    actualPort,
     startedAt
   };
   
@@ -202,6 +272,32 @@ export async function startServer(
   executeStartJob(jobId, serverName, options);
   
   return jobId;
+}
+
+/**
+ * Abort a server start job
+ */
+export async function abortServerStart(jobId: string): Promise<boolean> {
+  const job = jobs.get(jobId);
+  if (!job || job.status !== 'running') {
+    return false;
+  }
+
+  // Mark job as cancelled
+  job.status = 'failed';
+  job.message = 'Start operation aborted by user';
+  job.error = 'User cancelled the start operation';
+  job.completedAt = new Date();
+
+  // Clean up tmux session if it exists
+  try {
+    const tmuxSession = `pz-${job.serverName}`;
+    await execAsync(`tmux kill-session -t ${tmuxSession} || true`);
+  } catch {
+    // Ignore cleanup errors
+  }
+
+  return true;
 }
 
 /**
@@ -260,6 +356,12 @@ async function executeStartJob(
     // Wait up to PROCESS_SPAWN_TIMEOUT seconds for process to appear
     let pid: number | null = null;
     for (let i = 0; i < PROCESS_SPAWN_TIMEOUT; i++) {
+      // Check for job cancellation
+      const currentJob = jobs.get(jobId);
+      if (!currentJob || currentJob.status === 'failed') {
+        return; // Exit if job was cancelled
+      }
+
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
       pid = await findServerPid(serverName);
       if (pid) break;
@@ -273,11 +375,17 @@ async function executeStartJob(
     job.progress = 80;
     job.message = 'Verifying server is accepting connections...';
 
-    const ports = calculatePorts(serverName, config.servers);
+    const ports = await calculatePortsSmart(serverName, config.servers);
     let portBound = false;
 
     // Wait up to PORT_BINDING_TIMEOUT seconds for port binding
     for (let i = 0; i < PORT_BINDING_TIMEOUT; i++) {
+      // Check for job cancellation
+      const currentJob = jobs.get(jobId);
+      if (!currentJob || currentJob.status === 'failed') {
+        return; // Exit if job was cancelled
+      }
+
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
       portBound = await isPortBound(ports.defaultPort);
       if (portBound) break;

@@ -25,7 +25,13 @@
       "Bash(bash -n:*)",
       "Bash(/root/Zomboid/backup-system/bin/restore.sh:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git branch:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(xargs:*)",
+      "Bash(journalctl:*)",
+      "Bash(/opt/pzserver/jre64/bin/java:*)"
     ]
   }
 }

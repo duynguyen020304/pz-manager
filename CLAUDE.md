@@ -94,8 +94,11 @@ zomboid-web-manager/
 │   │   │       ├── restore/route.ts  # Start restore
 │   │   │       ├── status/route.ts   # GET single server status
 │   │   │       ├── start/route.ts    # POST start server
-│   │   │       └── stop/route.ts     # POST stop server
+│   │   │       ├── stop/route.ts     # POST stop server
+│   │   │       ├── console/route.ts  # SSE console streaming
+│   │   │       └── mods/route.ts     # GET server mods
 │   │   ├── installations/route.ts    # GET PZ installations
+│   │   ├── snapshots/route.ts        # GET all snapshots with filtering
 │   │   ├── config/route.ts           # GET/PATCH/POST config
 │   │   └── jobs/[id]/route.ts        # Poll restore/job status
 │   ├── page.tsx                      # Login page
@@ -113,16 +116,22 @@ zomboid-web-manager/
 ├── components/
 │   ├── providers/                    # React Query, Sidebar providers
 │   ├── sidebar.tsx                   # Navigation sidebar
+│   ├── top-header.tsx                # Header component
 │   ├── ServerStatusBadge.tsx         # Status indicator component
 │   ├── ServerStartModal.tsx          # Start server options modal
-│   └── StopConfirmModal.tsx          # Stop server confirmation
+│   ├── StopConfirmModal.tsx          # Stop server confirmation
+│   ├── ConsoleModal.tsx              # Console viewing modal
+│   ├── ConsoleViewer.tsx             # Console log viewer
+│   └── ModList.tsx                   # Server mods display
 ├── hooks/
 │   └── use-api.ts                    # React Query hooks for all API calls
 ├── lib/                              # Business logic
 │   ├── api.ts                        # API client functions
 │   ├── auth.ts                       # Authentication utilities
 │   ├── config-manager.ts             # Config file operations (5s cache)
+│   ├── console-manager.ts            # Console capture via tmux pipe-pane
 │   ├── file-utils.ts                 # File system utilities
+│   ├── mod-manager.ts                # Server mod configuration parsing
 │   ├── snapshot-manager.ts           # Backup operations, restore job tracking
 │   └── server-manager.ts             # Server start/stop, status, job tracking
 ├── types/index.ts                    # TypeScript definitions
@@ -158,12 +167,14 @@ Component → useQuery/useMutation hook → lib/api.ts → API route → lib/bus
 All hooks are in `hooks/use-api.ts`:
 - `useServers()`, `useAddServer()`, `useRemoveServer()`, `useDetectServers()`
 - `useSnapshots(serverName, schedule?)`, `useDeleteSnapshot()`
+- `useAllSnapshots(server?, schedule?)` - Query all snapshots across servers
 - `useServerStats(serverName)`
 - `useRestore()`, `useRestoreJob(jobId)`
-- `useConfig()`, `useSaveConfig()`, `useUpdateSchedule()`, `useUpdateCompression()`, `useUpdateIntegrity()`
+- `useConfig()`, `useSaveConfig()`, `useUpdateSchedule()`, `useUpdateCompression()`, `useUpdateIntegrity()`, `useUpdateAutoRollback()`
 - `useServerStatus(serverName)`, `useAllServerStatus()` - 10-second polling
 - `useStartServer()`, `useStopServer()`
-- `useInstallations()`
+- `useInstallations()`, `useServerMods(serverName)`
+- `useConsoleStream(serverName, enabled)` - SSE-based console streaming
 
 ### API Response Format
 
@@ -241,7 +252,10 @@ The `/api/jobs/[id]` endpoint returns either `RestoreJob` or `ServerJob` type.
 | Server saves | `/root/Zomboid/Saves/Multiplayer/` |
 | Restore script | `/root/Zomboid/backup-system/bin/restore.sh` |
 | Backup script | `/root/Zomboid/backup-system/bin/backup.sh` |
+| Server INI configs | `/root/Zomboid/Server/{servername}.ini` |
+| Server databases | `/root/Zomboid/db/{servername}.db` |
 | PZ Installation | `/opt/pzserver/` (default) |
+| Console logs | `/tmp/pz-console-{servername}.log` |
 
 ### Server Validation Criteria
 
@@ -355,9 +369,65 @@ NODE_ENV=production
 - **Icons**: Lucide React icon library
 - **Components**: Card-based layouts with `bg-card border border-border rounded-lg`
 
+## Console Manager (lib/console-manager.ts)
+
+This library manages live server console output streaming using tmux pipe-pane:
+
+**Console Capture:**
+- Uses `tmux pipe-pane` to capture console output to `/tmp/pz-console-{server}.log`
+- Reference counting for multiple clients - capture only stops when last client disconnects
+- Initial buffer capture (1000 lines) on first connect
+- Auto-cleanup after 1 minute of no clients
+- Active capture state tracking via in-memory Map
+
+**Console State:**
+- `startConsoleCapture(serverName)` - Starts capture, returns log path
+- `stopConsoleCapture(serverName)` - Decrements client count, stops when 0
+- `getConsoleSnapshot(serverName, lines)` - Gets N lines from tmux buffer
+- `isCapturing(serverName)` - Check if currently capturing
+
+**SSE Streaming:**
+- `/api/servers/[name]/console/route.ts` provides Server-Sent Events stream
+- Auto-reconnect handling in client hooks
+- File position tracking for incremental updates
+
+## Mod Manager (lib/mod-manager.ts)
+
+Parses server INI files to extract mod configuration:
+
+**Functions:**
+- `getServerMods(serverName)` - Returns full mod configuration
+- `getServerModSummary(serverName)` - Returns counts only
+
+**Parsed Data:**
+- `mods[]`: Array of local mod names (comma-separated in INI)
+- `workshopItems[]`: Array of `{workshopId, name}` objects (semicolon-separated, format: `id=name`)
+- `maps[]`: Array of map names (comma-separated, defaults to `Muldraugh, KY`)
+
+**INI Location:** `/root/Zomboid/Server/{servername}.ini`
+
+## Additional Components
+
+**ConsoleModal.tsx** - Modal dialog for viewing live server console
+**ConsoleViewer.tsx** - Terminal-style console output display with auto-scroll
+**ModList.tsx** - Display server mods, workshop items, and maps
+**top-header.tsx** - Header component with user info and logout
+
+## Additional Hooks
+
+- `useConsoleStream(serverName, enabled)` - SSE-based console streaming with auto-reconnect
+- `useServerMods(serverName)` - Fetch server mod configuration
+
+## Updated Server Start Timeouts
+
+Server start operations use extended timeouts for slower systems:
+- `PROCESS_SPAWN_TIMEOUT`: 240 seconds (4 minutes) - wait for PID to appear
+- `PORT_BINDING_TIMEOUT`: 120 seconds (2 minutes) - wait for port to bind
+- `POLL_INTERVAL_MS`: 1000ms (1 second) - between status checks
+
 ## Known Limitations
 
 - **Logs Page**: Currently uses mock data (`mockLogs` array in `app/(authenticated)/logs/page.tsx`). Real API integration is pending.
 - **Job Storage**: Restore and server jobs are stored in-memory (Map) and will be lost on server restart. For production, consider Redis or a database.
 - **Multi-installation**: Only default installation at `/opt/pzserver` is supported. The `installationId` option exists but is not fully implemented.
-- **Console Access**: Console button on servers page is disabled (marked "Coming Soon").
+- **Console Streaming**: Console capture state is in-memory and lost on server restart.

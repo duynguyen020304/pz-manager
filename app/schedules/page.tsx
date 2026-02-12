@@ -18,12 +18,19 @@ import {
 import { Schedule } from '@/types';
 
 const intervalOptions = [
-  { value: '*/5 * * * *', label: 'Every 5 minutes', short: '5min' },
-  { value: '*/10 * * * *', label: 'Every 10 minutes', short: '10min' },
-  { value: '*/30 * * * *', label: 'Every 30 minutes', short: '30min' },
-  { value: '0 * * * *', label: 'Every hour', short: 'hourly' },
-  { value: '0 0 * * *', label: 'Daily at midnight', short: 'daily' },
-  { value: '0 0 * * 0', label: 'Weekly (Sunday)', short: 'weekly' },
+  { value: '*/5 * * * *', label: 'Every 5 min', short: '5min' },
+  { value: '*/10 * * * *', label: 'Every 10 min', short: '10min' },
+  { value: '*/30 * * * *', label: 'Every 30 min', short: '30min' },
+  { value: '0 * * * *', label: 'Hourly', short: 'hourly' },
+  { value: '0 0 * * *', label: 'Daily', short: 'daily' },
+  { value: '0 1 * * *', label: 'Daily', short: 'daily' },
+  { value: '0 2 * * *', label: 'Daily', short: 'daily' },
+  { value: '0 3 * * *', label: 'Daily', short: 'daily' },
+  { value: '0 0 * * 0', label: 'Weekly', short: 'weekly' },
+  { value: '0 1 * * 0', label: 'Weekly', short: 'weekly' },
+  { value: '0 2 * * 0', label: 'Weekly', short: 'weekly' },
+  { value: '0 3 * * 0', label: 'Weekly', short: 'weekly' },
+  { value: '0 4 * * 0', label: 'Weekly', short: 'weekly' },
 ];
 
 export default function SchedulesPage() {

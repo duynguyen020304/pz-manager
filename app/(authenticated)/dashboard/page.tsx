@@ -103,11 +103,18 @@ function formatLastBackup(date: Date | null): string {
 function formatCronToHumanReadable(interval: string): string {
   const cronMap: Record<string, string> = {
     '*/5 * * * *': 'Every 5 min',
-    '*/10 * * * *': 'Every 10 min', 
+    '*/10 * * * *': 'Every 10 min',
     '*/30 * * * *': 'Every 30 min',
     '0 * * * *': 'Hourly',
     '0 0 * * *': 'Daily',
+    '0 1 * * *': 'Daily',
+    '0 2 * * *': 'Daily',
+    '0 3 * * *': 'Daily',
     '0 0 * * 0': 'Weekly',
+    '0 1 * * 0': 'Weekly',
+    '0 2 * * 0': 'Weekly',
+    '0 3 * * 0': 'Weekly',
+    '0 4 * * 0': 'Weekly',
     '@hourly': 'Hourly',
     '@daily': 'Daily',
     '@weekly': 'Weekly',
@@ -146,12 +153,12 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-2">
             Overview of your Project Zomboid backup system
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm">
             <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
             System Online
           </span>
@@ -204,8 +211,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content Grid - Bento Grid Middle */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Servers Table - 50% */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Servers Table - 66% */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between h-7">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -231,11 +238,11 @@ export default function DashboardPage() {
               <table className="w-full">
                 <thead className="bg-muted/50 border-b border-border">
                   <tr>
-                    <th className="text-left px-6 py-3 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Server</th>
-                    <th className="text-left px-6 py-3 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Status</th>
-                    <th className="text-left px-6 py-3 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Last Backup</th>
-                    <th className="text-left px-6 py-3 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Next Backup</th>
-                    <th className="text-right px-6 py-3 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Actions</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Server</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Status</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Last Backup</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Next Backup</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-foreground/70 uppercase tracking-wide">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -251,16 +258,16 @@ export default function DashboardPage() {
                     return (
                       <tr key={server.name} className="hover:bg-muted/30 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             <div className={`w-2.5 h-2.5 rounded-full ${server.valid ? 'bg-primary' : 'bg-yellow-500'}`} />
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                               <p className="font-medium text-foreground">{server.name}</p>
                               <div className="flex items-center gap-2">
                                 {server.hasIni && (
-                                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">INI</span>
+                                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">INI</span>
                                 )}
                                 {server.hasDb && (
-                                  <span className="text-[10px] bg-secondary/10 text-secondary px-1.5 py-0.5 rounded">DB</span>
+                                  <span className="text-xs bg-secondary/10 text-secondary px-2 py-1 rounded">DB</span>
                                 )}
                               </div>
                             </div>
@@ -278,24 +285,24 @@ export default function DashboardPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2 text-sm">
+                        <td className="px-6 py-4 min-w-[100px]">
+                          <div className="flex items-center gap-2 text-sm whitespace-nowrap">
                             <CheckCircle2 className="w-4 h-4 text-primary" />
                             <span className="text-muted-foreground">
                               {formatLastBackup(lastBackup ? new Date(lastBackup) : null)}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2 text-sm">
+                        <td className="px-6 py-4 min-w-[100px]">
+                          <div className="flex items-center gap-2 text-sm whitespace-nowrap">
                             <Clock className="w-4 h-4 text-muted-foreground" />
                             <span className="text-foreground">{formatTimeUntil(nextBackup)}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <Link 
+                          <Link
                             href="/servers"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-md text-sm font-medium transition-colors"
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-md text-sm font-medium transition-colors"
                           >
                             {isLoading ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -327,16 +334,17 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Actions - 25% */}
+        {/* Quick Actions & Active Schedules - 33% */}
         <div className="lg:col-span-1 space-y-4">
+          {/* Quick Actions */}
           <div className="flex items-center justify-between h-7">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary" />
               Quick Actions
             </h2>
           </div>
-          
-          <div className="space-y-3">
+
+          <div className="space-y-2">
             <QuickActionButton
               href="/rollback"
               icon={RotateCcw}
@@ -359,26 +367,24 @@ export default function DashboardPage() {
               variant="outline"
             />
           </div>
-        </div>
 
-        {/* Active Schedules - 25% */}
-        <div className="lg:col-span-1 space-y-4">
+          {/* Active Schedules */}
           <div className="flex items-center justify-between h-7">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
               Active Schedules
             </h2>
           </div>
-          
-          <div className="bg-card border border-border rounded-lg p-5">
+
+          <div className="bg-card border border-border rounded-lg p-4">
             {configLoading ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {[1, 2, 3].map(i => (
                   <div key={i} className="h-12 bg-muted rounded animate-pulse" />
                 ))}
               </div>
             ) : enabledSchedules.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {enabledSchedules.slice(0, 4).map((schedule) => (
                   <div key={schedule.name} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
                     <div className="flex items-center gap-2">
@@ -392,8 +398,8 @@ export default function DashboardPage() {
             ) : (
               <p className="text-sm text-muted-foreground text-center py-4">No active schedules</p>
             )}
-            <div className="mt-4 flex justify-center">
-              <Link 
+            <div className="mt-4 flex justify-center gap-2">
+              <Link
                 href="/schedules"
                 className="text-sm text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
               >
@@ -431,17 +437,17 @@ function StatCard({
     : 'text-primary bg-primary/10';
   
   return (
-    <div className="bg-card border border-border rounded-lg p-5 hover:border-primary/20 transition-colors">
+    <div className="bg-card border border-border rounded-lg p-4 hover:border-primary/20 transition-colors">
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm text-muted-foreground">{title}</p>
           {loading ? (
             <div className="h-8 w-20 bg-muted rounded mt-2 animate-pulse" />
           ) : (
-            <p className="text-2xl font-bold text-foreground mt-1">{value}</p>
+            <p className="text-2xl font-bold text-foreground mt-2">{value}</p>
           )}
           {trend && !loading && (
-            <div className="flex items-center gap-1 mt-2">
+            <div className="flex items-center gap-2 mt-2">
               <span className={`text-xs ${trendUp ? 'text-primary' : 'text-muted-foreground'}`}>
                 {trend}
               </span>
@@ -478,17 +484,17 @@ function QuickActionButton({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 p-4 rounded-lg border transition-all hover:scale-[1.02] active:scale-[0.98] ${variantClasses[variant]}`}
+      className={`flex items-center gap-2 p-3 rounded-lg border transition-colors ${variantClasses[variant]}`}
     >
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        variant === 'primary' ? 'bg-primary/10' : 
-        variant === 'secondary' ? 'bg-secondary/10' : 
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+        variant === 'primary' ? 'bg-primary/10' :
+        variant === 'secondary' ? 'bg-secondary/10' :
         'bg-muted'
       }`}>
-        <Icon className="w-5 h-5" strokeWidth={2} />
+        <Icon className="w-4 h-4" strokeWidth={2} />
       </div>
       <div className="flex-1 min-w-0">
-        <span className="font-medium block">{label}</span>
+        <span className="font-medium text-sm block">{label}</span>
         <span className="text-xs text-muted-foreground">
           {description}
         </span>

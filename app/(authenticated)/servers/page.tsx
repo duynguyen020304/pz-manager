@@ -2,13 +2,13 @@
 
 import { useServers, useDetectServers, useAddServer, useRemoveServer, useAllServerStatus, useServerMods } from '@/hooks/use-api';
 import { useState } from 'react';
-import { 
-  Server, 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
-  AlertCircle, 
-  FileText, 
+import {
+  Server,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
   Database,
   RefreshCw,
   X,
@@ -16,7 +16,8 @@ import {
   Play,
   Power,
   Terminal,
-  Loader2
+  Loader2,
+  RotateCcw
 } from 'lucide-react';
 import { Server as ServerType } from '@/types';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
@@ -24,6 +25,7 @@ import { ServerStartModal } from '@/components/ServerStartModal';
 import { StopConfirmModal } from '@/components/StopConfirmModal';
 import { ConsoleModal } from '@/components/ConsoleModal';
 import { ModList } from '@/components/ModList';
+import { RollbackModal } from '@/components/rollback';
 
 export default function ServersPage() {
   const { data: servers, isLoading } = useServers();
@@ -38,6 +40,7 @@ export default function ServersPage() {
   const [serverToStart, setServerToStart] = useState<string | null>(null);
   const [serverToStop, setServerToStop] = useState<string | null>(null);
   const [serverForConsole, setServerForConsole] = useState<string | null>(null);
+  const [serverForRollback, setServerForRollback] = useState<string | null>(null);
 
   const handleAddServer = async (name: string) => {
     try {
@@ -98,6 +101,7 @@ export default function ServersPage() {
               onStart={() => setServerToStart(server.name)}
               onStop={() => setServerToStop(server.name)}
               onConsole={() => setServerForConsole(server.name)}
+              onRollback={() => setServerForRollback(server.name)}
             />
           ))}
         </div>
@@ -167,6 +171,15 @@ export default function ServersPage() {
           onClose={() => setServerForConsole(null)}
         />
       )}
+
+      {/* Rollback Modal */}
+      {serverForRollback && (
+        <RollbackModal
+          isOpen={true}
+          onClose={() => setServerForRollback(null)}
+          initialServer={serverForRollback}
+        />
+      )}
     </div>
   );
 }
@@ -177,7 +190,8 @@ function ServerCard({
   onDelete,
   onStart,
   onStop,
-  onConsole
+  onConsole,
+  onRollback
 }: {
   server: ServerType;
   status?: {
@@ -191,12 +205,14 @@ function ServerCard({
       udpPort: number;
       rconPort: number;
     };
+    actualPort?: number;
     startedAt?: Date;
   };
   onDelete: () => void;
   onStart: () => void;
   onStop: () => void;
   onConsole: () => void;
+  onRollback: () => void;
 }) {
   const { data: mods, isLoading: isLoadingMods } = useServerMods(server.name);
   const isRunning = status?.state === 'running';
@@ -278,8 +294,15 @@ function ServerCard({
                   )}
                   {status.ports && (
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <span className="text-xs uppercase tracking-wide">Ports:</span>
-                      <span className="font-mono text-foreground">{status.ports.defaultPort}/{status.ports.udpPort}</span>
+                      <span className="text-xs uppercase tracking-wide">Port:</span>
+                      <span className="font-mono text-foreground">
+                        {status.actualPort || status.ports.defaultPort}
+                      </span>
+                      {status.actualPort && status.actualPort !== status.ports.defaultPort && (
+                        <span className="text-xs text-muted-foreground">
+                          (calculated: {status.ports.defaultPort})
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -297,6 +320,16 @@ function ServerCard({
         <div className="flex items-center gap-2 ml-4">
           {/* Start/Stop Buttons */}
           <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+            <button
+              onClick={onRollback}
+              disabled={isRunning || isLoading}
+              className="flex items-center gap-1 px-3 py-2 bg-accent/10 hover:bg-accent/20 text-accent rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Rollback Server"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Rollback</span>
+            </button>
+
             {(isStopped || isStarting) && (
               <button
                 onClick={onStart}

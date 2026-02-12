@@ -133,6 +133,7 @@ export interface ServerStatus {
     udpPort: number;
     rconPort: number;
   };
+  actualPort?: number;  // Actual port the server is listening on
   startedAt?: Date;
 }
 

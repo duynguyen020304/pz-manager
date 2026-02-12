@@ -151,7 +151,7 @@ export async function getAllServerStatus(): Promise<ServerStatus[]> {
 
 // Server Control
 export async function startServer(
-  serverName: string, 
+  serverName: string,
   options?: { debug?: boolean; installationId?: string }
 ): Promise<{ jobId: string; message: string }> {
   return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/start`, {
@@ -163,6 +163,13 @@ export async function startServer(
 export async function stopServer(serverName: string): Promise<{ jobId: string; message: string }> {
   return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/stop`, {
     method: 'POST'
+  });
+}
+
+export async function abortServerStart(serverName: string, jobId: string): Promise<{ message: string }> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/abort`, {
+    method: 'POST',
+    body: JSON.stringify({ jobId })
   });
 }
 

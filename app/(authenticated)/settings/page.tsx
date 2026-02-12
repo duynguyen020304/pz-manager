@@ -37,6 +37,31 @@ const tabs = [
 const retentionOptions = [6, 12, 24, 48, 72, 30, 90];
 const compressionLevels = [1, 3, 5, 7, 9];
 
+// Map cron intervals to human-readable labels
+const intervalLabels: Record<string, string> = {
+  '*/5 * * * *': 'Every 5 min',
+  '*/10 * * * *': 'Every 10 min',
+  '*/30 * * * *': 'Every 30 min',
+  '0 * * * *': 'Hourly',
+  '0 0 * * *': 'Daily',
+  '0 1 * * *': 'Daily',
+  '0 2 * * *': 'Daily',
+  '0 3 * * *': 'Daily',
+  '0 4 * * *': 'Daily',
+  '0 0 * * 0': 'Weekly',
+  '0 1 * * 0': 'Weekly',
+  '0 2 * * 0': 'Weekly',
+  '0 3 * * 0': 'Weekly',
+  '0 4 * * 0': 'Weekly',
+  '@hourly': 'Hourly',
+  '@daily': 'Daily',
+  '@weekly': 'Weekly',
+};
+
+function formatInterval(interval: string): string {
+  return intervalLabels[interval] || interval;
+}
+
 export default function ConfigPage() {
   const [activeTab, setActiveTab] = useState('schedules');
   const { data: config, isLoading } = useConfig();
@@ -171,7 +196,7 @@ function SchedulesTab({ config }: { config: BackupConfig }) {
                 
                 <div>
                   <h3 className="font-medium text-foreground capitalize">{schedule.name}</h3>
-                  <p className="text-sm text-muted-foreground">{schedule.interval}</p>
+                  <p className="text-sm text-muted-foreground">{formatInterval(schedule.interval)}</p>
                 </div>
               </div>
 
@@ -532,7 +557,7 @@ function RollbackTab({ config }: { config: BackupConfig }) {
                     }`}
                   >
                     <div className="font-medium capitalize">{schedule.name}</div>
-                    <div className="text-sm opacity-70">{schedule.interval}</div>
+                    <div className="text-sm opacity-70">{formatInterval(schedule.interval)}</div>
                   </button>
                 ))}
               </div>

@@ -124,6 +124,18 @@ export function useStartServer() {
   });
 }
 
+export function useAbortStart() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ serverName, jobId }: { serverName: string; jobId: string }) =>
+      api.abortServerStart(serverName, jobId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['server-status'] });
+    }
+  });
+}
+
 export function useStopServer() {
   const queryClient = useQueryClient();
 

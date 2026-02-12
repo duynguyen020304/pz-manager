@@ -2,23 +2,24 @@
 
 import { useServers, useSnapshots, useDeleteSnapshot } from '@/hooks/use-api';
 import { useState } from 'react';
-import { 
-  Archive, 
-  Server, 
-  HardDrive, 
-  Clock, 
-  Trash2, 
+import {
+  Server,
+  HardDrive,
+  Clock,
+  Trash2,
   AlertTriangle,
-  X,
   FileArchive,
-  CheckCircle2
+  RotateCcw
 } from 'lucide-react';
 import { Snapshot } from '@/types';
+import { RollbackModal } from '@/components/rollback';
 
 export default function BackupsPage() {
   const [selectedServer, setSelectedServer] = useState<string>('');
   const [selectedSchedule, setSelectedSchedule] = useState<string>('');
   const [snapshotToDelete, setSnapshotToDelete] = useState<Snapshot | null>(null);
+  const [rollbackServer, setRollbackServer] = useState<string | null>(null);
+  const [rollbackSnapshot, setRollbackSnapshot] = useState<string | null>(null);
   
   const { data: servers, isLoading: serversLoading } = useServers();
   const { data: snapshots, isLoading: snapshotsLoading } = useSnapshots(
@@ -29,12 +30,13 @@ export default function BackupsPage() {
 
   const handleDelete = async () => {
     if (!snapshotToDelete) return;
-    
+
     try {
       await deleteSnapshot.mutateAsync(snapshotToDelete.path);
       setSnapshotToDelete(null);
     } catch (error) {
       console.error('Failed to delete snapshot:', error);
+      // Could show user-facing error message here
     }
   };
 
@@ -144,12 +146,25 @@ export default function BackupsPage() {
                           {snapshot.fileCount.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => setSnapshotToDelete(snapshot)}
-                            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => {
+                                setRollbackServer(selectedServer);
+                                setRollbackSnapshot(snapshot.path);
+                              }}
+                              className="p-2 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-md transition-colors"
+                              title="Rollback to this snapshot"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setSnapshotToDelete(snapshot)}
+                              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                              title="Delete snapshot"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -199,7 +214,7 @@ export default function BackupsPage() {
               </div>
               <h2 className="text-xl font-semibold text-foreground">Delete Snapshot?</h2>
             </div>
-            
+
             <div className="space-y-3 mb-6">
               <p className="text-muted-foreground">
                 Are you sure you want to delete this snapshot?
@@ -213,7 +228,7 @@ export default function BackupsPage() {
                 This action cannot be undone.
               </p>
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setSnapshotToDelete(null)}
@@ -231,6 +246,19 @@ export default function BackupsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Rollback Modal */}
+      {rollbackServer && (
+        <RollbackModal
+          isOpen={true}
+          onClose={() => {
+            setRollbackServer(null);
+            setRollbackSnapshot(null);
+          }}
+          initialServer={rollbackServer}
+          initialSnapshot={rollbackSnapshot}
+        />
       )}
     </div>
   );

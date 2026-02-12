@@ -2,18 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Server, 
-  Clock, 
-  FileText, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Server,
+  Clock,
+  FileText,
+  Settings,
   LogOut,
   Menu,
   X,
   ChevronLeft,
   ChevronRight,
-  Shield
+  Shield,
+  User
 } from 'lucide-react';
 import { useState } from 'react';
 import { logout } from '@/lib/api';
@@ -103,8 +104,8 @@ export function Sidebar() {
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   title={isCollapsed ? item.name : undefined}
-                  className={`flex items-center justify-center rounded-md transition-all duration-200 group relative min-h-[44px] ${
-                    isCollapsed ? 'px-2' : 'gap-3 px-4'
+                  className={`flex items-center rounded-md transition-all duration-200 group relative min-h-[44px] ${
+                    isCollapsed ? 'justify-center px-2' : 'justify-start gap-3 px-4'
                   } ${
                     isActive 
                       ? 'bg-primary/10 text-primary border border-primary/20' 
@@ -125,41 +126,66 @@ export function Sidebar() {
             })}
           </nav>
 
-          {/* Collapse toggle */}
+          {/* Footer - User profile with collapse and logout */}
           <div className="p-3 border-t border-border">
-            <button
-              onClick={toggle}
-              className={`flex items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] w-full ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-3'}`}
-              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {isCollapsed ? (
-                <ChevronRight className="w-5 h-5 flex-shrink-0" />
-              ) : (
-                <>
-                  <ChevronLeft className="w-5 h-5 flex-shrink-0" />
-                  <span className="font-medium text-sm leading-none">Collapse</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Logout */}
-          <div className={`p-3 border-t border-border ${isCollapsed ? 'px-2' : ''}`}>
-            <button
-              onClick={handleLogout}
-              title={isCollapsed ? 'Logout' : undefined}
-              className={`flex items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors group relative min-h-[44px] w-full ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}
-            >
-              <LogOut className="w-5 h-5 flex-shrink-0" />
-              {!isCollapsed && (
-                <span className="font-medium text-sm leading-none">Logout</span>
-              )}
-              {isCollapsed && (
-                <div className="absolute left-full ml-2 px-2 py-1 bg-card border border-border rounded-md text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                  Logout
+            {isCollapsed ? (
+              <div className="flex flex-col items-center gap-2">
+                {/* Collapse button */}
+                <button
+                  onClick={toggle}
+                  className="w-full flex justify-center py-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  title="Expand sidebar"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                {/* User avatar */}
+                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-primary" />
                 </div>
-              )}
-            </button>
+                {/* Logout button */}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex justify-center py-2 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive group relative"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-card border border-border rounded-md text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                    Logout
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                {/* User profile section */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="font-medium text-sm text-foreground">Admin</span>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-1">
+                  {/* Collapse button - icon only */}
+                  <button
+                    onClick={toggle}
+                    className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    title="Collapse sidebar"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  {/* Logout button - icon only */}
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    title="Logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </aside>
