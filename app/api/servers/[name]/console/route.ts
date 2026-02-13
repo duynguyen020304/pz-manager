@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { startConsoleCapture, stopConsoleCapture, getConsoleSnapshot } from '@/lib/console-manager';
+import { requireAuth } from '@/lib/auth';
 import { spawn } from 'child_process';
 
 interface Params {
@@ -10,8 +11,12 @@ interface Params {
  * GET /api/servers/[name]/console
  * Server-Sent Events endpoint for streaming console logs
  */
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
   const { name } = await params;
+  
+  // Check authentication
+  await requireAuth(request);
+  
   const encoder = new TextEncoder();
 
   // Validate server name

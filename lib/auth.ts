@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { query, queryOne } from './db';
-import { verifyPassword, getUserByUsernameWithRole, updateLastLogin } from './user-manager';
+import { verifyPassword, getUserByUsernameWithRole, getUserByIdWithRole, updateLastLogin } from './user-manager';
 import type { UserWithRole, Session } from '@/types';
 
 const SESSION_SECRET = process.env.SESSION_SECRET;
@@ -117,7 +117,7 @@ export async function getSessionWithUser(
   const session = await getSessionByToken(token);
   if (!session) return null;
 
-  const user = await getUserByUsernameWithRole(session.userId.toString());
+  const user = await getUserByIdWithRole(session.userId);
   if (!user || !user.isActive) return null;
 
   return { ...session, user };

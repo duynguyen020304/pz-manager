@@ -19,9 +19,30 @@ npm run lint
 
 # Run ESLint on specific file
 npx eslint app/api/servers/route.ts
-npx eslint components/ui/button.tsx
 
-# No test framework configured - do not add tests
+# Run tests (watch mode)
+npm test
+
+# Run tests once (CI mode)
+npm run test:run
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run a single test file
+npx vitest run __tests__/unit/lib/user-manager.test.ts
+
+# Run tests matching a pattern
+npx vitest run --grep "user manager"
+
+# Database commands
+npm run db:start    # Start TimescaleDB container
+npm run db:stop     # Stop container
+npm run db:reset    # Reset database
+npm run db:migrate  # Run migrations
 ```
 
 ## Project Stack
@@ -30,8 +51,9 @@ npx eslint components/ui/button.tsx
 - **Language**: TypeScript 5 (strict mode)
 - **UI**: React 19, Tailwind CSS v4
 - **State**: TanStack Query (React Query) v5
+- **Database**: TimescaleDB (PostgreSQL)
 - **Auth**: Session-based with bcryptjs
-- **Package Manager**: npm
+- **Testing**: Vitest with jsdom
 
 ## Code Style Guidelines
 
@@ -40,17 +62,15 @@ npx eslint components/ui/button.tsx
 - Target: ES2017, Module: ESNext
 - Path alias: `@/` for all imports
 - Avoid `any`; use `unknown` with type guards
-- No unused variables or parameters
+- No unused variables (prefix with `_` to ignore: `_unusedParam`)
 
 ### Import Order
 ```typescript
-// 1. External dependencies (React, TanStack Query)
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import React from 'react';
+// 1. External dependencies
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 // 2. Next.js built-ins
 import { NextRequest, NextResponse } from 'next/server';
-import Link from 'next/link';
 
 // 3. Internal types
 import { Server, ApiResponse } from '@/types';
@@ -58,7 +78,6 @@ import { Server, ApiResponse } from '@/types';
 // 4. Internal components/hooks/lib
 import { Sidebar } from '@/components/sidebar';
 import { useServers } from '@/hooks/use-api';
-import * as api from '@/lib/api';
 ```
 
 ### Naming Conventions
@@ -66,18 +85,16 @@ import * as api from '@/lib/api';
 | Type | Convention | Example |
 |------|------------|---------|
 | Files | kebab-case | `snapshot-manager.ts` |
-| Components | PascalCase | `ServerCard`, `RollbackModal` |
-| Functions | camelCase | `getServers`, `useQuery` |
-| Types/Interfaces | PascalCase | `Server`, `BackupConfig` |
-| Constants | UPPER_SNAKE | `SAVES_PATH`, `API_BASE` |
-| Hooks | camelCase starting with 'use' | `useServers`, `useMutation` |
+| Components | PascalCase | `ServerCard` |
+| Functions | camelCase | `getServers` |
+| Types/Interfaces | PascalCase | `Server` |
+| Constants | UPPER_SNAKE | `SAVES_PATH` |
+| Hooks | camelCase + 'use' prefix | `useServers` |
 
 ### React Components
 - Functional components with hooks only
-- Add `'use client'` directive for client components
-- Destructure props in function parameters
-- Define interfaces before components
-- Use semantic Tailwind classes
+- Add `'use client'` for client components
+- Destructure props, define interfaces before component
 
 ```typescript
 'use client';
@@ -94,8 +111,7 @@ export function ServerCard({ server, onDelete }: ServerCardProps) {
 }
 ```
 
-### API Routes Pattern
-- Use `NextRequest`/`NextResponse` from next/server
+### API Routes
 - Return consistent `ApiResponse<T>` format
 - Log errors with context using console.error
 - Use type guards for error messages
@@ -107,42 +123,32 @@ export async function GET() {
     return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error('Failed to fetch:', error);
-    const message = error instanceof Error ? error.message : 'Failed';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Failed' },
+      { status: 500 }
+    );
   }
 }
 ```
 
-### React Query Hooks
+### React Query
 - Query keys as arrays: `['servers']`, `['snapshots', serverName]`
 - Use `enabled: !!serverName` for conditional fetching
 - Invalidate queries after mutations
-- Use `refetchInterval` for polling
 
 ```typescript
 export function useServers() {
   return useQuery({ queryKey: ['servers'], queryFn: api.getServers });
 }
-
-export function useAddServer() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: api.addServer,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['servers'] })
-  });
-}
 ```
 
 ### Tailwind CSS
-- Use semantic color variables from globals.css
-- Prefer: `bg-card`, `text-foreground`, `border-border`, `text-muted-foreground`
-- Tailwind v4 uses `@import "tailwindcss"` (not @tailwind directives)
-- Use `@apply` in CSS files for reusable utilities
+- Use semantic color variables: `bg-card`, `text-foreground`, `border-border`
+- Tailwind v4 uses `@import "tailwindcss"` in CSS
 
 ```tsx
 <div className="bg-card rounded-lg border border-border p-6">
   <h1 className="text-2xl font-bold text-foreground">Title</h1>
-  <p className="text-muted-foreground">Description</p>
 </div>
 ```
 
@@ -150,52 +156,34 @@ export function useAddServer() {
 - Use `fetchApi<T>` helper for all API calls
 - Include `credentials: 'include'` for auth
 - Throw error when `!data.success`
-- Encode URI components in URLs
 
 ## File Structure
 
 ```
-app/                          # Next.js App Router
-├── (authenticated)/          # Protected pages (group route)
+app/                    # Next.js App Router
+├── (authenticated)/    # Protected pages
 │   ├── dashboard/
 │   ├── servers/
 │   ├── backups/
 │   ├── rollback/
 │   ├── settings/
 │   └── logs/
-├── api/                      # API routes
-│   ├── auth/
-│   ├── servers/
-│   └── config/
-├── schedules/                # Public schedules page
-├── layout.tsx                # Root layout
-├── page.tsx                  # Login page
-└── globals.css               # CSS variables & Tailwind
-components/                   # React components
-├── providers/                # Context providers
-├── servers/                  # Server-related components
-├── rollback/                 # Rollback wizard components
-├── ui/                       # Reusable UI components
-└── *.tsx                    # Top-level components
-hooks/                        # React Query hooks
-└── use-api.ts               # All API hooks
-lib/                          # Utilities
-├── api.ts                   # API client
-├── auth.ts                  # Authentication
-├── config-manager.ts        # Config operations
-├── server-manager.ts        # Server operations
-├── snapshot-manager.ts      # Snapshot operations
-├── console-manager.ts       # Console operations
-├── mod-manager.ts           # Mod operations
-└── file-utils.ts           # File utilities
-types/                        # TypeScript definitions
-└── index.ts                # All type interfaces
-public/                       # Static assets
+├── api/                # API routes
+├── schedules/          # Public page
+├── globals.css
+components/             # React components
+├── providers/
+├── servers/
+├── rollback/
+└── ui/
+hooks/                  # React Query hooks
+lib/                    # Utilities (api, auth, server-manager, etc.)
+types/                  # TypeScript definitions
+public/
 ```
 
 ## Environment Variables
 
-Required in `.env.local`:
 ```bash
 ADMIN_PASSWORD_HASH=          # bcrypt hash
 SESSION_SECRET=               # Random secret (32+ chars)
@@ -206,12 +194,8 @@ SNAPSHOTS_PATH=/root/Zomboid/backup-system/snapshots
 
 ## Key Technical Details
 
-- Development server runs on port 3001
-- Production server binds to 127.0.0.1 (port 3000)
-- Requires read/write access to Zomboid backup system
-- Next.js config: `serverExternalPackages: ['bcryptjs']`
-- Path mapping: `"@/*": ["./*"]` in tsconfig.json
-- No test framework - do not add tests
-- Always run `npm run lint` after making changes
-- Dark theme only (defined in globals.css)
-- Session-based authentication with HTTP-only cookies
+- Dev server: port 3001 (0.0.0.0) | Prod: port 3000 (127.0.0.1)
+- Vitest with jsdom environment, single-threaded tests
+- Always run `npm run lint` after changes
+- Dark theme only
+- Session auth with HTTP-only cookies

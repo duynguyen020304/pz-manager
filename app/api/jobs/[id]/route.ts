@@ -1,13 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getJobStatus } from '@/lib/snapshot-manager';
 import { getServerJobStatus } from '@/lib/server-manager';
+import { requireAuth } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
   try {
+    await requireAuth(request);
     const { id } = await params;
     
     // Check for restore job first

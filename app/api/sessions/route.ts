@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionCookie, getSessionWithUser, deleteSession } from '@/lib/auth';
 
-export async function GET(_request: NextRequest) {  // eslint-disable-line @typescript-eslint/no-unused-vars
+export async function GET(_request: NextRequest) {
   try {
     const token = await getSessionCookie();
     
@@ -47,7 +47,7 @@ export async function GET(_request: NextRequest) {  // eslint-disable-line @type
   }
 }
 
-export async function DELETE(_request: NextRequest) {  // eslint-disable-line @typescript-eslint/no-unused-vars
+export async function DELETE(_request: NextRequest) {
   try {
     const token = await getSessionCookie();
     

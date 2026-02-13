@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { Snapshot, SnapshotManifest, ApiResponse } from '@/types';
 import { loadConfig } from '@/lib/config-manager';
+import { requireAuth } from '@/lib/auth';
 import { 
   directoryExists, 
   readJson, 
@@ -288,6 +289,7 @@ async function collectAllSnapshots(
 
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<PaginatedSnapshotsResponse>>> {
   try {
+    await requireAuth(request);
     const { searchParams } = new URL(request.url);
     
     const server = searchParams.get('server') || undefined;

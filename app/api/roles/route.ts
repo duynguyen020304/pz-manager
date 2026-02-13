@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllRoles, createRole } from '@/lib/role-manager';
+import { getAllRoles, createRole, getRoleUserCount } from '@/lib/role-manager';
+import { requireAuth } from '@/lib/auth';
 import type { CreateRoleInput } from '@/types';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    await requireAuth(request);
     const roles = await getAllRoles();
+
+    // Fetch user counts for each role
+    const rolesWithCounts = await Promise.all(
+      roles.map(async (role) => ({
+        ...role,
+        userCount: await getRoleUserCount(role.id),
+      }))
+    );
 
     return NextResponse.json({
       success: true,
-      data: { roles },
+      data: { roles: rolesWithCounts },
     });
   } catch (error) {
     console.error('Failed to fetch roles:', error);
@@ -22,6 +32,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth(request);
     const body: CreateRoleInput = await request.json();
 
     // Validate required fields

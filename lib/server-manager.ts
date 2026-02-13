@@ -1,7 +1,8 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { ServerStatus, ServerJob, PZInstallation } from '@/types';
+import { ServerStatus, ServerJob, PZInstallation, ParserType } from '@/types';
 import { loadConfig } from './config-manager';
+import { LOG_PATHS } from './parsers';
 
 const execAsync = promisify(exec);
 
@@ -241,6 +242,28 @@ export async function getAllServerStatus(): Promise<ServerStatus[]> {
 }
 
 /**
+ * Get list of currently running servers
+ */
+export async function getRunningServers(): Promise<string[]> {
+  const allStatuses = await getAllServerStatus();
+  return allStatuses
+    .filter(status => status.state === 'running')
+    .map(status => status.name);
+}
+
+/**
+ * Get the first running server (or null if none/running)
+ * Useful for default selection when only one server is running
+ */
+export async function getRunningServer(): Promise<string | null> {
+  const runningServers = await getRunningServers();
+  if (runningServers.length === 1) {
+    return runningServers[0];
+  }
+  return runningServers.length > 0 ? runningServers[0] : null;
+}
+
+/**
  * Clear the status cache for a server
  */
 function clearStatusCache(serverName: string): void {
@@ -408,6 +431,15 @@ async function executeStartJob(
     // Clear cache so next status check gets fresh data
     clearStatusCache(serverName);
     
+    // Auto-start log watching for this server
+    try {
+      const { startWatchingAll } = await import('./log-watcher');
+      await startWatchingAll([serverName]);
+      console.log(`[ServerManager] Auto-started log watching for ${serverName}`);
+    } catch (watchError) {
+      console.error(`[ServerManager] Failed to auto-start log watching:`, watchError);
+    }
+    
   } catch (error) {
     job.status = 'failed';
     job.message = 'Failed to start server';
@@ -522,6 +554,30 @@ async function executeStopJob(jobId: string, serverName: string): Promise<void> 
     
     // Clear cache
     clearStatusCache(serverName);
+    
+    // Auto-stop log watching for this server
+    try {
+      const { unwatchLogFile } = await import('./log-watcher');
+      // Unwatch all log files for this server
+      const logFiles: Array<{ path: string; type: ParserType }> = [
+        { path: LOG_PATHS.pzUserLog, type: 'user' },
+        { path: LOG_PATHS.pzChatLog, type: 'chat' },
+        { path: LOG_PATHS.pzPerkLog, type: 'perk' },
+        { path: LOG_PATHS.pzPvpLog, type: 'pvp' },
+        { path: LOG_PATHS.pzAdminLog, type: 'admin' },
+        { path: LOG_PATHS.pzCmdLog, type: 'cmd' },
+      ];
+      for (const { path: logPath, type } of logFiles) {
+        unwatchLogFile(logPath, type);
+      }
+      // Unwatch server log
+      const today = new Date().toISOString().split('T')[0];
+      const serverLogPath = LOG_PATHS.pzServerLog(today);
+      unwatchLogFile(serverLogPath, 'server');
+      console.log(`[ServerManager] Auto-stopped log watching for ${serverName}`);
+    } catch (watchError) {
+      console.error(`[ServerManager] Failed to auto-stop log watching:`, watchError);
+    }
     
   } catch (error) {
     job.status = 'failed';

@@ -4,6 +4,7 @@ import { SidebarProvider } from '@/components/providers/sidebar-provider';
 import { Sidebar } from '@/components/sidebar';
 import { TopHeader } from '@/components/top-header';
 import { getSessionCookie } from '@/lib/auth';
+import { systemMonitor } from '@/lib/system-monitor';
 
 export default async function AuthenticatedLayout({
   children,
@@ -14,6 +15,13 @@ export default async function AuthenticatedLayout({
   
   if (!session) {
     redirect('/');
+  }
+
+  // Start system monitoring service (server-side only)
+  try {
+    await systemMonitor.start();
+  } catch (error) {
+    console.error('[Layout] Failed to start monitoring:', error);
   }
 
   return (

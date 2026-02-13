@@ -1,44 +1,60 @@
 'use client';
 
-
-import { UserCog, Plus, RefreshCw, Shield, Users } from 'lucide-react';
-import { useRoles } from '@/hooks/use-api-users';
-
-const PERMISSION_LABELS: Record<string, string> = {
-  servers: 'Servers',
-  backups: 'Backups',
-  schedules: 'Schedules',
-  settings: 'Settings',
-  logs: 'Logs',
-  users: 'Users',
-  roles: 'Roles',
-};
-
-const ACTION_LABELS: Record<string, string> = {
-  view: 'View',
-  create: 'Create',
-  edit: 'Edit',
-  delete: 'Delete',
-  start: 'Start',
-  stop: 'Stop',
-  configure: 'Configure',
-  restore: 'Restore',
-};
-
-function PermissionBadge({ resource, actions }: { resource: string; actions: string[] }) {
-  return (
-    <div className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded text-xs">
-      <span className="font-medium">{PERMISSION_LABELS[resource] || resource}</span>
-      <span className="text-muted-foreground">:</span>
-      <span className="text-muted-foreground">
-        {actions.map(a => ACTION_LABELS[a] || a).join(', ')}
-      </span>
-    </div>
-  );
-}
+import { useState } from 'react';
+import { UserCog, Plus, RefreshCw } from 'lucide-react';
+import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from '@/hooks/use-api-users';
+import {
+  RoleCard,
+  RoleCardSkeletonGrid,
+  CreateRoleModal,
+  EditRoleModal,
+  DeleteRoleModal,
+} from '@/components/roles';
+import type { Role } from '@/types';
 
 export default function RolesPage() {
   const { data, isLoading, error, refetch } = useRoles();
+  const createRoleMutation = useCreateRole();
+  const updateRoleMutation = useUpdateRole();
+  const deleteRoleMutation = useDeleteRole();
+
+  // Modal state
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [deletingRole, setDeletingRole] = useState<Role | null>(null);
+
+  // Stats calculation
+  const roles = data?.roles ?? [];
+  const systemCount = roles.filter(r => r.isSystem).length;
+  const customCount = roles.filter(r => !r.isSystem).length;
+
+  const handleCreateRole = async (input: { name: string; description?: string; permissions: Record<string, string[]> }) => {
+    try {
+      await createRoleMutation.mutateAsync(input);
+      setCreateModalOpen(false);
+    } catch {
+      // Error is handled by the mutation
+    }
+  };
+
+  const handleUpdateRole = async (id: number, input: { name?: string; description?: string; permissions?: Record<string, string[]> }) => {
+    try {
+      await updateRoleMutation.mutateAsync({ id, data: input });
+      setEditingRole(null);
+    } catch {
+      // Error is handled by the mutation
+    }
+  };
+
+  const handleDeleteRole = async () => {
+    if (!deletingRole) return;
+    try {
+      await deleteRoleMutation.mutateAsync(deletingRole.id);
+      setDeletingRole(null);
+    } catch {
+      // Error is handled by the mutation
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -61,81 +77,71 @@ export default function RolesPage() {
           >
             <RefreshCw className={`w-4 h-4 text-foreground ${isLoading ? 'animate-spin' : ''}`} />
           </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
             <Plus className="w-4 h-4" />
             Create Role
           </button>
         </div>
       </div>
 
-      {/* Roles Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {isLoading ? (
-          <div className="col-span-full py-12 text-center text-muted-foreground">
-            Loading roles...
-          </div>
-        ) : error ? (
-          <div className="col-span-full py-12 text-center text-destructive">
-            Failed to load roles
-          </div>
-        ) : (
-          data?.roles.map((role) => (
-            <div
-              key={role.id}
-              className="bg-card rounded-lg border border-border p-6 hover:border-primary/50 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    role.isSystem ? 'bg-primary/10' : 'bg-secondary'
-                  }`}>
-                    <Shield className={`w-5 h-5 ${
-                      role.isSystem ? 'text-primary' : 'text-secondary-foreground'
-                    }`} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground capitalize">{role.name}</h3>
-                    <p className="text-sm text-muted-foreground">{role.description}</p>
-                  </div>
-                </div>
-                {role.isSystem && (
-                  <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full">
-                    System
-                  </span>
-                )}
-              </div>
-
-              {/* Permissions */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">Permissions</h4>
-                <div className="flex flex-wrap gap-2">
-                  {role.name === 'superadmin' ? (
-                    <PermissionBadge resource="*" actions={['*']} />
-                  ) : (
-                    Object.entries(role.permissions).map(([resource, actions]) => (
-                      <PermissionBadge key={resource} resource={resource} actions={actions} />
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="w-4 h-4" />
-                  <span>Users with this role</span>
-                </div>
-                <button
-                  disabled={role.isSystem}
-                  className="px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Edit
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+      {/* Stats Row */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-2xl font-bold text-foreground">{roles.length}</div>
+          <div className="text-sm text-muted-foreground">Total Roles</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-2xl font-bold text-foreground">{systemCount}</div>
+          <div className="text-sm text-muted-foreground">System Roles</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-2xl font-bold text-foreground">{customCount}</div>
+          <div className="text-sm text-muted-foreground">Custom Roles</div>
+        </div>
       </div>
+
+      {/* Roles Grid */}
+      {isLoading ? (
+        <RoleCardSkeletonGrid count={4} />
+      ) : error ? (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
+          <p className="text-destructive">Failed to load roles</p>
+          <button
+            onClick={() => refetch()}
+            className="mt-2 text-sm text-muted-foreground hover:text-foreground underline"
+          >
+            Try again
+          </button>
+        </div>
+      ) : roles.length === 0 ? (
+        <div className="bg-muted/50 border border-border rounded-lg p-12 text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+            <UserCog className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground">No roles found</p>
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="mt-2 text-sm text-primary hover:underline"
+          >
+            Create your first role
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {roles.map(role => (
+            <RoleCard
+              key={role.id}
+              role={role}
+              userCount={role.userCount}
+              onEdit={() => setEditingRole(role)}
+              onDelete={role.isSystem ? undefined : () => setDeletingRole(role)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Info Card */}
       <div className="bg-muted/50 rounded-lg border border-border p-4">
@@ -147,6 +153,38 @@ export default function RolesPage() {
           <li>Deleting a role will remove it from all assigned users</li>
         </ul>
       </div>
+
+      {/* Create Role Modal */}
+      {createModalOpen && (
+        <CreateRoleModal
+          onClose={() => setCreateModalOpen(false)}
+          onSubmit={handleCreateRole}
+          isSubmitting={createRoleMutation.isPending}
+        />
+      )}
+
+      {/* Edit Role Modal */}
+      {editingRole && (
+        <EditRoleModal
+          key={editingRole.id}
+          role={editingRole}
+          userCount={editingRole.userCount}
+          onClose={() => setEditingRole(null)}
+          onSubmit={handleUpdateRole}
+          isSubmitting={updateRoleMutation.isPending}
+        />
+      )}
+
+      {/* Delete Role Modal */}
+      {deletingRole && (
+        <DeleteRoleModal
+          role={deletingRole}
+          userCount={deletingRole.userCount ?? 0}
+          onClose={() => setDeletingRole(null)}
+          onConfirm={handleDeleteRole}
+          isDeleting={deleteRoleMutation.isPending}
+        />
+      )}
     </div>
   );
 }

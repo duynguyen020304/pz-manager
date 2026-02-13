@@ -1,12 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { detectAvailableServers } from '@/lib/file-utils';
 import { getServers } from '@/lib/config-manager';
+import { requireAuth } from '@/lib/auth';
 import { Server } from '@/types';
 
 const SAVES_PATH = '/root/Zomboid/Saves/Multiplayer';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    await requireAuth(request);
     const configuredServers = await getServers();
     const detectedServers = await detectAvailableServers(SAVES_PATH);
     

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listSnapshots, deleteSnapshot } from '@/lib/snapshot-manager';
+import { requireAuth } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ name: string }>;
@@ -7,6 +8,7 @@ interface Params {
 
 export async function GET(request: NextRequest, { params }: Params) {
   try {
+    await requireAuth(request);
     const { name } = await params;
     const { searchParams } = new URL(request.url);
     const schedule = searchParams.get('schedule') || undefined;
@@ -28,6 +30,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requireAuth(request);
     const { searchParams } = new URL(request.url);
     const path = searchParams.get('path');
     

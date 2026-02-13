@@ -119,6 +119,7 @@ zomboid-web-manager/
 │   │   ├── roles/[id]/route.ts       # GET, PATCH, DELETE role
 │   │   ├── sessions/route.ts         # GET current session info
 │   │   ├── audit-logs/route.ts       # GET audit log entries
+│   │   ├── logs/route.ts             # GET unified log query
 │   │   ├── installations/route.ts    # GET PZ installations
 │   │   ├── snapshots/route.ts        # GET all snapshots (rich/paginated)
 │   │   ├── config/route.ts           # GET/PATCH/POST config
@@ -139,6 +140,8 @@ zomboid-web-manager/
 │   └── globals.css                   # Global styles
 ├── components/
 │   ├── providers/                    # React Query, Sidebar providers
+│   ├── accounts/                     # User management components (table, modals)
+│   ├── roles/                        # Role management components (cards, permission matrix)
 │   ├── sidebar.tsx                   # Navigation sidebar
 │   ├── top-header.tsx                # Header component
 │   ├── ServerStatusBadge.tsx         # Status indicator component
@@ -149,22 +152,37 @@ zomboid-web-manager/
 │   └── ModList.tsx                   # Server mods display
 ├── hooks/
 │   ├── use-api.ts                    # React Query hooks for server/backup APIs
-│   └── use-api-users.ts              # React Query hooks for user/role APIs
+│   ├── use-api-users.ts              # React Query hooks for user/role APIs
+│   └── use-debounce.ts               # Debounce hook for search inputs
 ├── lib/                              # Business logic
 │   ├── api.ts                        # API client functions
 │   ├── auth.ts                       # Authentication utilities
 │   ├── db.ts                         # PostgreSQL connection and query helpers
 │   ├── user-manager.ts               # User CRUD operations
 │   ├── role-manager.ts               # Role CRUD and permission checking
+│   ├── permission-constants.ts       # Shared permission definitions for UI
 │   ├── config-manager.ts             # Config file operations (5s cache)
 │   ├── console-manager.ts            # Console capture via tmux pipe-pane
 │   ├── file-utils.ts                 # File system utilities
 │   ├── mod-manager.ts                # Server mod configuration parsing
 │   ├── snapshot-manager.ts           # Backup operations, restore job tracking
-│   └── server-manager.ts             # Server start/stop, status, job tracking
+│   ├── server-manager.ts             # Server start/stop, status, job tracking
+│   ├── log-manager.ts                # Log ingestion and database operations
+│   ├── log-watcher.ts                # Real-time file watching for logs
+│   └── parsers/                      # Log file parsers
+│       ├── index.ts                  # Parser exports
+│       ├── base-parser.ts            # Base parser class and utilities
+│       ├── backup-log-parser.ts      # Backup/restore log parser
+│       ├── user-log-parser.ts        # Player event parser
+│       ├── chat-log-parser.ts        # Chat message parser
+│       ├── perk-log-parser.ts        # Skill snapshot parser
+│       ├── server-log-parser.ts      # Server event parser
+│       └── pvp-log-parser.ts         # PvP event parser
 ├── scripts/
 │   ├── init-db.sql                   # Database schema and seed data
-│   └── migrate-admin.js              # Admin user migration script
+│   ├── migrate-admin.js              # Admin user migration script
+│   └── migrations/                   # Database migration scripts
+│       └── add_logs_tables.sql       # Log tables schema
 ├── __tests__/
 │   ├── setup/setup.ts                # Test setup (pg-mem or real DB)
 │   ├── setup/test-db.ts              # pg-mem test database factory
@@ -244,6 +262,13 @@ The application uses PostgreSQL with TimescaleDB for user management, sessions, 
 | `users` | User accounts with foreign key to roles |
 | `sessions` | Server-side session storage with tokens |
 | `audit_logs` | Time-series audit log (TimescaleDB hypertable) |
+| `backup_logs` | Backup/restore operation logs (TimescaleDB hypertable) |
+| `pz_player_events` | Player login/logout/death events |
+| `pz_server_events` | Server startup/shutdown/error events |
+| `pz_skill_snapshots` | Player skill progression from PerkLog.txt |
+| `pz_chat_messages` | In-game chat history |
+| `pz_pvp_events` | PvP combat events |
+| `log_file_positions` | File read positions for incremental log parsing |
 
 ### Database Manager (lib/db.ts)
 
@@ -274,6 +299,15 @@ RBAC with permission checking:
 
 **Default Roles:** superadmin, admin, operator, viewer (system roles, cannot be deleted)
 
+### Permission Constants (`lib/permission-constants.ts`)
+
+Shared constants for permission matrix UI and validation:
+- `PERMISSION_RESOURCES` - List of resources with display labels (servers, backups, schedules, settings, logs, users, roles)
+- `PERMISSION_ACTIONS` - List of actions (view, create, edit, delete, start, stop, configure, restore)
+- `RESOURCE_ACTIONS` - Maps resources to their applicable actions
+- `PERMISSION_PRESETS` - Quick-select presets (readOnly, operator, admin)
+- Helper functions: `getResourceLabel()`, `getActionLabel()`, `isEmptyPermissions()`, `countPermissions()`
+
 ### Permission Format
 
 Permissions stored as JSONB: `{ "resource": ["action1", "action2"] }`
@@ -298,6 +332,72 @@ Audit logs use TimescaleDB hypertable with 1-day chunks:
 - `resource_type`, `resource_id` - Target resource
 - `details` - JSONB for additional context
 - `ip_address` - Client IP
+
+## Log Management System
+
+The application includes a comprehensive log parsing and ingestion system for both backup system logs and Project Zomboid game server logs.
+
+### Log Parsers (`lib/parsers/`)
+
+Each parser extends `BaseParser` and handles a specific log format:
+
+| Parser | Source File | Output Type |
+|--------|-------------|-------------|
+| `BackupLogParser` | `backup.log`, `restore.log` | `BackupLogEntry` |
+| `UserLogParser` | `user.txt` | `PZPlayerEvent` |
+| `ChatLogParser` | `chat.txt` | `PZChatMessage` |
+| `PerkLogParser` | `PerkLog.txt` | `PZSkillSnapshot` |
+| `ServerLogParser` | `$(date)/server.txt` | `PZServerEvent` |
+| `PVPLogParser` | `pvp.txt` | `PZPVPEvent` |
+
+**Log Paths** (defined in `lib/parsers/base-parser.ts`):
+```typescript
+LOG_PATHS = {
+  backupLog: '/root/Zomboid/backup-system/logs/backup.log',
+  restoreLog: '/root/Zomboid/backup-system/logs/restore.log',
+  rollbackLog: '/root/Zomboid/backup-system/logs/rollback-cli.log',
+  pzUserLog: '/root/Zomboid/Logs/user.txt',
+  pzChatLog: '/root/Zomboid/Logs/chat.txt',
+  pzPerkLog: '/root/Zomboid/Logs/PerkLog.txt',
+  pzPvpLog: '/root/Zomboid/Logs/pvp.txt',
+  pzServerLog: (date) => `/root/Zomboid/Logs/${date}/server.txt`,
+}
+```
+
+### Log Manager (`lib/log-manager.ts`)
+
+Handles database operations and file position tracking:
+- `parseAndIngestFile(filePath, parserType, serverName)` - Parse and insert new log entries
+- `getUnifiedLogs(filters)` - Query logs from any source with unified format
+- `getBackupLogs()`, `getPlayerEvents()`, `getChatMessages()`, etc. - Source-specific queries
+- `getFilePosition()` / `updateFilePosition()` - Track file read positions for incremental parsing
+
+### Log Watcher (`lib/log-watcher.ts`)
+
+Real-time file monitoring using Node.js `fs.watch`:
+- `watchLogFile(filePath, parserType, serverName)` - Watch a single file
+- `startWatchingAll(servers)` - Watch all log files for specified servers
+- `startWatchingRunning()` - Auto-detect and watch running servers only
+- Debounced ingestion (1s delay) to batch file changes
+- Automatic log rotation detection (when file shrinks or is renamed)
+
+### Unified Logs API (`/api/logs`)
+
+Query parameters:
+- `source` - Log source: `backup`, `player`, `server`, `chat`, `pvp`
+- `server` - Filter by server name
+- `eventType` - Filter by event type
+- `username` - Filter by username (supports partial match)
+- `level` - Filter by log level (INFO, WARN, ERROR)
+- `from`, `to` - Date range filters (ISO8601)
+- `limit`, `offset` - Pagination
+
+### Database Migration
+
+Run `scripts/migrations/add_logs_tables.sql` to create log tables:
+```bash
+psql -d zomboid_manager -f scripts/migrations/add_logs_tables.sql
+```
 
 ## Testing
 
@@ -325,6 +425,12 @@ npm test
 
 # Single run (CI mode)
 npm run test:run
+
+# Run a single test file
+npx vitest run __tests__/unit/lib/user-manager.test.ts
+
+# Run tests matching a pattern
+npx vitest run --grep "user manager"
 
 # Integration tests (requires running TimescaleDB)
 USE_REAL_DATABASE=true npm test
@@ -517,6 +623,12 @@ The config contains (see `types/index.ts`):
 |--------|----------|-------------|
 | GET | `/api/audit-logs` | List audit entries (supports `?userId&action&resourceType&from&to`) |
 
+### Logs
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/logs` | Unified log query (supports `?source&server&eventType&username&level&from&to&limit&offset`) |
+
 ## Pages and Navigation
 
 ### Sidebar Navigation
@@ -527,7 +639,7 @@ The sidebar navigation (`components/sidebar.tsx`) includes:
 - **Accounts** (`/accounts`) - User management with CRUD operations
 - **Roles** (`/roles`) - Role management with CRUD operations
 - **Schedules** (`/schedules`) - Full CRUD for backup schedules
-- **Logs** (`/logs`) - Operation history viewer (currently mock data)
+- **Logs** (`/logs`) - Unified log viewer with filtering by source, server, event type
 - **Settings** (`/settings`) - Tabbed interface (Schedules/Servers/Settings)
 
 ### Pages Not in Sidebar Navigation
@@ -638,8 +750,8 @@ NODE_ENV=production
 
 ## Known Limitations
 
-- **Logs Page**: Currently uses mock data. Real API integration pending.
+- **Logs Page**: Has real API (`/api/logs`) but requires log ingestion setup via log-watcher.
 - **Job Storage**: Restore and server jobs are stored in-memory (Map) and will be lost on server restart.
 - **Multi-installation**: Only default installation at `/opt/pzserver` is fully supported.
 - **Console Streaming**: Console capture state is in-memory and lost on server restart.
-- **Audit Logs**: API route exists but frontend integration pending.
+- **Log Watcher**: Must be started manually or integrated into application startup for real-time ingestion.

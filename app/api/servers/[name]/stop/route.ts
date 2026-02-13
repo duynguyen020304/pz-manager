@@ -1,12 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { stopServer } from '@/lib/server-manager';
+import { requireAuth } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ name: string }>;
 }
 
-export async function POST(_request: Request, { params }: Params) {
+export async function POST(request: NextRequest, { params }: Params) {
   try {
+    await requireAuth(request);
     const { name } = await params;
     const jobId = await stopServer(name);
     

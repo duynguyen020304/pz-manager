@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { RestoreJob, ServerJob, ServerModsConfig } from '@/types';
+import { RestoreJob, ServerJob, ServerModsConfig, LogFilters } from '@/types';
 import * as api from '@/lib/api';
 
 // Servers
@@ -105,6 +105,14 @@ export function useAllServerStatus() {
   return useQuery({
     queryKey: ['server-status', 'all'],
     queryFn: api.getAllServerStatus,
+    refetchInterval: 10000
+  });
+}
+
+export function useRunningServers() {
+  return useQuery({
+    queryKey: ['server-status', 'running'],
+    queryFn: api.getRunningServers,
     refetchInterval: 10000
   });
 }
@@ -324,4 +332,117 @@ export function useConsoleStream(serverName: string, enabled: boolean): ConsoleS
   }, [serverName, enabled]);
 
   return { logs, isConnected, error };
+}
+
+// ============================================
+// LOGS
+// ============================================
+
+// Unified logs (all log types)
+export function useLogs(filters?: LogFilters) {
+  return useQuery({
+    queryKey: ['logs', filters],
+    queryFn: () => api.getLogs(filters),
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
+}
+
+// Backup logs
+export function useBackupLogs(filters?: LogFilters) {
+  return useQuery({
+    queryKey: ['logs', 'backup', filters],
+    queryFn: () => api.getBackupLogs(filters),
+    refetchInterval: 30000
+  });
+}
+
+// Player events
+export function usePlayerEvents(filters?: LogFilters) {
+  return useQuery({
+    queryKey: ['logs', 'player', filters],
+    queryFn: () => api.getPlayerEvents(filters),
+    refetchInterval: 30000
+  });
+}
+
+// Server events
+export function useServerEvents(filters?: LogFilters) {
+  return useQuery({
+    queryKey: ['logs', 'server', filters],
+    queryFn: () => api.getServerEvents(filters),
+    refetchInterval: 30000
+  });
+}
+
+// Chat messages
+export function useChatMessages(filters?: LogFilters) {
+  return useQuery({
+    queryKey: ['logs', 'chat', filters],
+    queryFn: () => api.getChatMessages(filters),
+    refetchInterval: 30000
+  });
+}
+
+// PVP events
+export function usePVPEvents(filters?: LogFilters) {
+  return useQuery({
+    queryKey: ['logs', 'pvp', filters],
+    queryFn: () => api.getPVPEvents(filters),
+    refetchInterval: 30000
+  });
+}
+
+// Log statistics
+export function useLogStats(server?: string) {
+  return useQuery({
+    queryKey: ['logs', 'stats', server],
+    queryFn: () => api.getLogStats(server),
+    refetchInterval: 60000 // Refresh every minute
+  });
+}
+
+// Watch status
+export function useWatchStatus() {
+  return useQuery({
+    queryKey: ['logs', 'watch-status'],
+    queryFn: api.getWatchStatus,
+    refetchInterval: 60000
+  });
+}
+
+// Log ingestion mutation
+export function useIngestAllLogs() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (servers?: string[]) => api.ingestAllLogs(servers),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['logs'] });
+    }
+  });
+}
+
+// Start watching mutation
+export function useStartLogWatching() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (options?: { servers?: string[]; watchRunning?: boolean }) => 
+      api.startLogWatching(options?.servers, options?.watchRunning),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['logs', 'watch-status'] });
+    }
+  });
+}
+
+// Stop watching mutation
+export function useStopLogWatching() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: api.stopLogWatching,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['logs', 'watch-status'] });
+    }
+  });
 }

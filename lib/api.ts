@@ -149,6 +149,10 @@ export async function getAllServerStatus(): Promise<ServerStatus[]> {
   return fetchApi(`${API_BASE}/servers/status`);
 }
 
+export async function getRunningServers(): Promise<{ running: string[]; all: ServerStatus[] }> {
+  return fetchApi(`${API_BASE}/servers/running`);
+}
+
 // Server Control
 export async function startServer(
   serverName: string,
@@ -326,4 +330,160 @@ export interface CurrentUserResponse {
 
 export async function getCurrentUser(): Promise<CurrentUserResponse> {
   return fetchApi(`${API_BASE}/sessions`);
+}
+
+// ============================================
+// LOGS
+// ============================================
+
+import type { BackupLogEntry, PZPlayerEvent, PZServerEvent, PZChatMessage, PZPVPEvent, UnifiedLogEntry, LogStats, LogFilters } from '@/types';
+
+export interface LogsResponse<T> {
+  logs: T[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+// Get unified logs (all log types)
+export async function getLogs(filters?: LogFilters): Promise<LogsResponse<UnifiedLogEntry>> {
+  const searchParams = new URLSearchParams();
+  if (filters?.source) searchParams.set('source', filters.source);
+  if (filters?.server) searchParams.set('server', filters.server);
+  if (filters?.eventType) searchParams.set('eventType', filters.eventType);
+  if (filters?.username) searchParams.set('username', filters.username);
+  if (filters?.level) searchParams.set('level', filters.level);
+  if (filters?.from) searchParams.set('from', filters.from.toISOString());
+  if (filters?.to) searchParams.set('to', filters.to.toISOString());
+  if (filters?.limit) searchParams.set('limit', filters.limit.toString());
+  if (filters?.offset) searchParams.set('offset', filters.offset.toString());
+
+  const query = searchParams.toString();
+  return fetchApi(`${API_BASE}/logs${query ? `?${query}` : ''}`);
+}
+
+// Get backup logs
+export async function getBackupLogs(filters?: LogFilters): Promise<LogsResponse<BackupLogEntry>> {
+  const searchParams = new URLSearchParams();
+  if (filters?.server) searchParams.set('server', filters.server);
+  if (filters?.level) searchParams.set('level', filters.level);
+  if (filters?.from) searchParams.set('from', filters.from.toISOString());
+  if (filters?.to) searchParams.set('to', filters.to.toISOString());
+  if (filters?.limit) searchParams.set('limit', filters.limit.toString());
+  if (filters?.offset) searchParams.set('offset', filters.offset.toString());
+
+  const query = searchParams.toString();
+  return fetchApi(`${API_BASE}/logs/backup${query ? `?${query}` : ''}`);
+}
+
+// Get player events
+export async function getPlayerEvents(filters?: LogFilters): Promise<LogsResponse<PZPlayerEvent>> {
+  const searchParams = new URLSearchParams();
+  if (filters?.server) searchParams.set('server', filters.server);
+  if (filters?.eventType) searchParams.set('eventType', filters.eventType);
+  if (filters?.username) searchParams.set('username', filters.username);
+  if (filters?.from) searchParams.set('from', filters.from.toISOString());
+  if (filters?.to) searchParams.set('to', filters.to.toISOString());
+  if (filters?.limit) searchParams.set('limit', filters.limit.toString());
+  if (filters?.offset) searchParams.set('offset', filters.offset.toString());
+
+  const query = searchParams.toString();
+  return fetchApi(`${API_BASE}/logs/player${query ? `?${query}` : ''}`);
+}
+
+// Get server events
+export async function getServerEvents(filters?: LogFilters): Promise<LogsResponse<PZServerEvent>> {
+  const searchParams = new URLSearchParams();
+  if (filters?.server) searchParams.set('server', filters.server);
+  if (filters?.eventType) searchParams.set('eventType', filters.eventType);
+  if (filters?.level) searchParams.set('level', filters.level);
+  if (filters?.from) searchParams.set('from', filters.from.toISOString());
+  if (filters?.to) searchParams.set('to', filters.to.toISOString());
+  if (filters?.limit) searchParams.set('limit', filters.limit.toString());
+  if (filters?.offset) searchParams.set('offset', filters.offset.toString());
+
+  const query = searchParams.toString();
+  return fetchApi(`${API_BASE}/logs/server${query ? `?${query}` : ''}`);
+}
+
+// Get chat messages
+export async function getChatMessages(filters?: LogFilters): Promise<LogsResponse<PZChatMessage>> {
+  const searchParams = new URLSearchParams();
+  if (filters?.server) searchParams.set('server', filters.server);
+  if (filters?.username) searchParams.set('username', filters.username);
+  if (filters?.from) searchParams.set('from', filters.from.toISOString());
+  if (filters?.to) searchParams.set('to', filters.to.toISOString());
+  if (filters?.limit) searchParams.set('limit', filters.limit.toString());
+  if (filters?.offset) searchParams.set('offset', filters.offset.toString());
+
+  const query = searchParams.toString();
+  return fetchApi(`${API_BASE}/logs/chat${query ? `?${query}` : ''}`);
+}
+
+// Get PVP events
+export async function getPVPEvents(filters?: LogFilters): Promise<LogsResponse<PZPVPEvent>> {
+  const searchParams = new URLSearchParams();
+  if (filters?.server) searchParams.set('server', filters.server);
+  if (filters?.eventType) searchParams.set('eventType', filters.eventType);
+  if (filters?.username) searchParams.set('username', filters.username);
+  if (filters?.from) searchParams.set('from', filters.from.toISOString());
+  if (filters?.to) searchParams.set('to', filters.to.toISOString());
+  if (filters?.limit) searchParams.set('limit', filters.limit.toString());
+  if (filters?.offset) searchParams.set('offset', filters.offset.toString());
+
+  const query = searchParams.toString();
+  return fetchApi(`${API_BASE}/logs/pvp${query ? `?${query}` : ''}`);
+}
+
+// Get log statistics
+export async function getLogStats(server?: string): Promise<LogStats> {
+  const query = server ? `?server=${encodeURIComponent(server)}` : '';
+  return fetchApi(`${API_BASE}/logs/stats${query}`);
+}
+
+// Log ingestion actions
+export interface IngestResponse {
+  entriesIngested: number;
+  errors: string[];
+}
+
+export interface WatcherStatus {
+  filePath: string;
+  parserType: string;
+  serverName: string;
+  isActive: boolean;
+  lastIngestTime: number;
+}
+
+export interface WatchStatusResponse {
+  watchers: WatcherStatus[];
+  activeCount: number;
+}
+
+export async function getWatchStatus(): Promise<WatchStatusResponse> {
+  return fetchApi(`${API_BASE}/logs/ingest`);
+}
+
+export async function ingestAllLogs(servers?: string[]): Promise<IngestResponse> {
+  return fetchApi(`${API_BASE}/logs/ingest`, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'ingest_all', servers })
+  });
+}
+
+export async function startLogWatching(servers?: string[], watchRunning?: boolean): Promise<{ message: string; servers?: string[] }> {
+  return fetchApi(`${API_BASE}/logs/ingest`, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'start_watching', servers, watchRunning })
+  });
+}
+
+export async function stopLogWatching(): Promise<{ message: string }> {
+  return fetchApi(`${API_BASE}/logs/ingest`, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'stop_watching' })
+  });
 }

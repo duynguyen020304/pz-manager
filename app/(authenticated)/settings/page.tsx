@@ -8,7 +8,8 @@ import {
   useUpdateAutoRollback
 } from '@/hooks/use-api';
 import { useState } from 'react';
-import { BackupConfig, Schedule } from '@/types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { BackupConfig, Schedule, MonitorConfig, MonitorConfigInput } from '@/types';
 import { 
   Settings, 
   Clock, 
@@ -16,6 +17,7 @@ import {
   Sliders, 
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   ToggleLeft,
   ToggleRight,
@@ -24,12 +26,14 @@ import {
   Shield,
   Archive,
   RotateCcw,
-  Skull
+  Skull,
+  Activity
 } from 'lucide-react';
 
 const tabs = [
   { id: 'schedules', name: 'Schedules', icon: Clock, description: 'Manage backup schedules' },
   { id: 'servers', name: 'Servers', icon: Server, description: 'Configure server list' },
+  { id: 'monitoring', name: 'Monitoring', icon: Activity, description: 'System performance monitoring' },
   { id: 'settings', name: 'Settings', icon: Sliders, description: 'Compression and integrity' },
   { id: 'rollback', name: 'Rollback', icon: RotateCcw, description: 'Automatic rollback on player death' },
 ];
@@ -121,6 +125,7 @@ export default function ConfigPage() {
       <div className="bg-card border border-border rounded-lg">
         {activeTab === 'schedules' && <SchedulesTab config={config} />}
         {activeTab === 'servers' && <ServersTab config={config} />}
+        {activeTab === 'monitoring' && <MonitoringTab />}
         {activeTab === 'settings' && <SettingsTab config={config} />}
         {activeTab === 'rollback' && <RollbackTab config={config} />}
       </div>
@@ -619,6 +624,226 @@ function RollbackTab({ config }: { config: BackupConfig }) {
                     Use with caution and ensure frequent backups are enabled.
                   </p>
                 </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Monitoring Tab
+function MonitoringTab() {
+  const { data: config, isLoading } = useQuery({
+    queryKey: ['monitor-config'],
+    queryFn: async (): Promise<MonitorConfig> => {
+      const response = await fetch('/api/metrics?type=config');
+      if (!response.ok) throw new Error('Failed to fetch config');
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+  });
+
+  const queryClient = useQueryClient();
+
+  const updateConfig = useMutation({
+    mutationFn: async (updates: MonitorConfigInput) => {
+      const response = await fetch('/api/metrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error('Failed to update config');
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monitor-config'] });
+      queryClient.invalidateQueries({ queryKey: ['metrics'] });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!config) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
+          <h2 className="text-xl font-bold text-foreground">Failed to load monitoring configuration</h2>
+        </div>
+      </div>
+    );
+  }
+
+  const handleToggleEnabled = () => {
+    updateConfig.mutate({ enabled: !config.enabled });
+  };
+
+  const handleIntervalChange = (direction: 'up' | 'down') => {
+    const current = config.pollingIntervalSeconds;
+    const newValue = direction === 'up' 
+      ? Math.min(current + 1, 300)
+      : Math.max(current - 1, 1);
+    if (newValue !== current) {
+      updateConfig.mutate({ pollingIntervalSeconds: newValue });
+    }
+  };
+
+  const handleRetentionChange = (direction: 'up' | 'down') => {
+    const current = config.dataRetentionDays;
+    const newValue = direction === 'up'
+      ? Math.min(current + 1, 365)
+      : Math.max(current - 1, 1);
+    if (newValue !== current) {
+      updateConfig.mutate({ dataRetentionDays: newValue });
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-foreground">Performance Monitoring</h2>
+        <p className="text-muted-foreground">Configure system performance monitoring and spike detection</p>
+      </div>
+
+      <div className="space-y-6">
+        {/* Enable Toggle */}
+        <div className="p-4 bg-muted/30 rounded-lg border border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <Activity className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium text-foreground">Enable Monitoring</h3>
+                <p className="text-sm text-muted-foreground">Collect system performance metrics</p>
+              </div>
+            </div>
+            <button onClick={handleToggleEnabled} disabled={updateConfig.isPending}>
+              {config.enabled ? (
+                <ToggleRight className="w-8 h-8 text-green-500" />
+              ) : (
+                <ToggleLeft className="w-8 h-8 text-muted-foreground" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {config.enabled && (
+          <>
+            {/* Polling Interval */}
+            <div className="p-4 bg-muted/30 rounded-lg border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="font-medium text-foreground">Polling Interval</h3>
+                  <p className="text-sm text-muted-foreground">How often to collect metrics (seconds)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleIntervalChange('down')}
+                    disabled={updateConfig.isPending}
+                    className="p-1 hover:bg-muted rounded disabled:opacity-50"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="font-medium text-foreground w-16 text-center">
+                    {config.pollingIntervalSeconds}s
+                  </span>
+                  <button
+                    onClick={() => handleIntervalChange('up')}
+                    disabled={updateConfig.isPending}
+                    className="p-1 hover:bg-muted rounded disabled:opacity-50"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                Recommended: 5 seconds for real-time monitoring, 30+ seconds for reduced resource usage
+              </div>
+            </div>
+
+            {/* Data Retention */}
+            <div className="p-4 bg-muted/30 rounded-lg border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="font-medium text-foreground">Data Retention</h3>
+                  <p className="text-sm text-muted-foreground">How long to keep metric history (days)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleRetentionChange('down')}
+                    disabled={updateConfig.isPending}
+                    className="p-1 hover:bg-muted rounded disabled:opacity-50"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="font-medium text-foreground w-16 text-center">
+                    {config.dataRetentionDays} days
+                  </span>
+                  <button
+                    onClick={() => handleRetentionChange('up')}
+                    disabled={updateConfig.isPending}
+                    className="p-1 hover:bg-muted rounded disabled:opacity-50"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                Older metrics are automatically deleted. Lower values reduce database size.
+              </div>
+            </div>
+
+            {/* Spike Detection Info */}
+            <div className="p-4 bg-muted/30 rounded-lg border border-border">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-yellow-500/10 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">Spike Detection</h3>
+                  <p className="text-sm text-muted-foreground">Automatic detection of performance spikes</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between py-2 border-t border-border">
+                  <span className="text-muted-foreground">CPU Spike Threshold</span>
+                  <span className="font-medium">{config.cpuSpikeThresholdPercent}% change (sustained {config.cpuSpikeSustainedSeconds}s)</span>
+                </div>
+                <div className="flex justify-between py-2 border-t border-border">
+                  <span className="text-muted-foreground">CPU Critical Threshold</span>
+                  <span className="font-medium">{config.cpuCriticalThreshold}% absolute</span>
+                </div>
+                <div className="flex justify-between py-2 border-t border-border">
+                  <span className="text-muted-foreground">Memory Spike Threshold</span>
+                  <span className="font-medium">{config.memorySpikeThresholdPercent}% change (sustained {config.memorySpikeSustainedSeconds}s)</span>
+                </div>
+                <div className="flex justify-between py-2 border-t border-border">
+                  <span className="text-muted-foreground">Memory Critical Threshold</span>
+                  <span className="font-medium">{config.memoryCriticalThreshold}% absolute</span>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-yellow-500/5 rounded border border-yellow-500/20">
+                <p className="text-xs text-muted-foreground">
+                  <strong className="text-yellow-600">Note:</strong> Spike detection is optimized for Project Zomboid servers.{' '}
+                  The algorithm uses sustained detection (multiple consecutive samples) to avoid false positives from the game&apos;s{' '}
+                  random CPU spikes. Adjust thresholds in database if needed.
+                </p>
               </div>
             </div>
           </>

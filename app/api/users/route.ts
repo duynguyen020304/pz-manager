@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listUsers, createUser, countUsers, countActiveUsers } from '@/lib/user-manager';
+import { requireAuth } from '@/lib/auth';
 import type { CreateUserInput } from '@/types';
 
 export async function GET(request: NextRequest) {
   try {
+    await requireAuth(request);
     const { searchParams } = new URL(request.url);
     
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -51,6 +53,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth(request);
     const body: CreateUserInput = await request.json();
 
     // Validate required fields

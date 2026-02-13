@@ -1,12 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerStatus } from '@/lib/server-manager';
+import { requireAuth } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ name: string }>;
 }
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
   try {
+    await requireAuth(request);
     const { name } = await params;
     const status = await getServerStatus(name);
     

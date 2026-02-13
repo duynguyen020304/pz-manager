@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { restoreSnapshot } from '@/lib/snapshot-manager';
+import { requireAuth } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ name: string }>;
@@ -7,6 +8,7 @@ interface Params {
 
 export async function POST(request: NextRequest, { params }: Params) {
   try {
+    await requireAuth(request);
     const { name } = await params;
     const { snapshotPath } = await request.json();
     

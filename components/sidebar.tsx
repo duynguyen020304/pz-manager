@@ -16,7 +16,8 @@ import {
   Shield,
   User,
   Users,
-  UserCog
+  UserCog,
+  Activity
 } from 'lucide-react';
 import { useState } from 'react';
 import { logout } from '@/lib/api';
@@ -26,6 +27,7 @@ import { useSidebar } from '@/components/providers/sidebar-provider';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Servers', href: '/servers', icon: Server },
+  { name: 'Monitor', href: '/monitor', icon: Activity },
   { name: 'Schedules', href: '/schedules', icon: Clock },
   { name: 'Logs', href: '/logs', icon: FileText },
   { name: 'Accounts', href: '/accounts', icon: Users },

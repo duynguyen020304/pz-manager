@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { abortServerStart } from '@/lib/server-manager';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
   try {
+    await requireAuth(request);
     await params;
     const body = await request.json();
 

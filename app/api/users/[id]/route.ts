@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByIdWithRole, updateUser, deleteUser } from '@/lib/user-manager';
+import { requireAuth } from '@/lib/auth';
 import type { UpdateUserInput } from '@/types';
 
 interface RouteParams {
@@ -10,6 +11,7 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    await requireAuth(request);
     const { id } = await params;
     const userId = parseInt(id, 10);
     
@@ -45,6 +47,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    await requireAuth(request);
     const { id } = await params;
     const userId = parseInt(id, 10);
     
@@ -87,6 +90,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    await requireAuth(request);
     const { id } = await params;
     const userId = parseInt(id, 10);
     

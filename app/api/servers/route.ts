@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServers, addServer, removeServer } from '@/lib/config-manager';
 import { detectAvailableServers } from '@/lib/file-utils';
+import { requireAuth } from '@/lib/auth';
 import { Server } from '@/types';
 
 const SAVES_PATH = '/root/Zomboid/Saves/Multiplayer';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    await requireAuth(request);
     const serverNames = await getServers();
     const detectedServers = await detectAvailableServers(SAVES_PATH);
     
@@ -37,6 +39,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth(request);
     const { name } = await request.json();
     
     if (!name || typeof name !== 'string') {
@@ -72,6 +75,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requireAuth(request);
     const { searchParams } = new URL(request.url);
     const name = searchParams.get('name');
     

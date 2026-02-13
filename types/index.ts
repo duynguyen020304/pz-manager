@@ -198,6 +198,7 @@ export interface Role {
   isSystem: boolean;
   createdAt: Date;
   updatedAt: Date;
+  userCount?: number;
 }
 
 export interface User {
@@ -296,4 +297,250 @@ export interface PaginatedResult<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+// ============================================
+// LOG TYPES
+// ============================================
+
+// Backup system log entry
+export interface BackupLogEntry {
+  time: Date;
+  logType: 'backup' | 'restore' | 'rollback-cli';
+  level: 'INFO' | 'ERROR' | 'WARN';
+  server?: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+// PZ Player event
+export interface PZPlayerEvent {
+  time: Date;
+  server: string;
+  eventType: 'login' | 'logout' | 'chat' | 'death' | 'combat' | 'vehicle_enter' | 'vehicle_exit' | 'admin_command';
+  username?: string;
+  ipAddress?: string;
+  details?: Record<string, unknown>;
+}
+
+// PZ Server event
+export interface PZServerEvent {
+  time: Date;
+  server: string;
+  eventType: 'startup' | 'shutdown' | 'error' | 'warning' | 'info';
+  category?: string;
+  level?: 'LOG' | 'ERROR' | 'WARN' | 'INFO';
+  message?: string;
+  details?: Record<string, unknown>;
+}
+
+// PZ Skill snapshot
+export interface PZSkillSnapshot {
+  time: Date;
+  server: string;
+  username: string;
+  playerId?: number;
+  hoursSurvived: number;
+  skills: Record<string, number>;
+}
+
+// PZ Chat message
+export interface PZChatMessage {
+  time: Date;
+  server: string;
+  username: string;
+  chatType: string;
+  message: string;
+  coordinates?: { x: number; y: number; z: number };
+}
+
+// PZ PVP event
+export interface PZPVPEvent {
+  time: Date;
+  server: string;
+  eventType: 'damage' | 'kill' | 'death';
+  attacker?: string;
+  victim?: string;
+  weapon?: string;
+  damage?: number;
+  details?: Record<string, unknown>;
+}
+
+// Log file position tracking
+export interface LogFilePosition {
+  filePath: string;
+  lastPosition: number;
+  lastModified: Date;
+  lastIngested: Date;
+  fileSize?: number;
+  checksum?: string;
+  parserType: string;
+}
+
+// Unified log entry for display
+export interface UnifiedLogEntry {
+  id: string;
+  time: Date;
+  source: 'backup' | 'restore' | 'player' | 'server' | 'chat' | 'pvp' | 'skill';
+  server?: string;
+  username?: string;
+  eventType: string;
+  level: 'INFO' | 'ERROR' | 'WARN' | 'DEBUG';
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+// Log filters
+export interface LogFilters {
+  server?: string;
+  eventType?: string;
+  username?: string;
+  source?: string;
+  level?: string;
+  from?: Date;
+  to?: Date;
+  limit?: number;
+  offset?: number;
+}
+
+// Log pagination response
+export interface LogsResponse<T> {
+  logs: T[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+// Log statistics
+export interface LogStats {
+  totalEvents: number;
+  uniquePlayers: number;
+  errorCount: number;
+  warningCount: number;
+  loginCount: number;
+  deathCount: number;
+  chatCount: number;
+  avgSessionDuration?: number;
+}
+
+// Player activity summary
+export interface PlayerActivitySummary {
+  username: string;
+  server: string;
+  lastActivity: Date;
+  lastLogin?: Date;
+  loginCount: number;
+  deathCount: number;
+  chatCount: number;
+}
+
+// Parser types
+export type ParserType = 'backup' | 'restore' | 'user' | 'chat' | 'server' | 'perk' | 'pvp' | 'item' | 'admin' | 'cmd' | 'vehicle';
+
+// Parsed log result
+export interface ParsedLogResult {
+  entries: UnifiedLogEntry[];
+  bytesProcessed: number;
+  linesProcessed: number;
+  errors: string[];
+}
+
+// ============================================
+// SYSTEM MONITORING TYPES
+// ============================================
+
+export interface SystemMetric {
+  time: Date;
+  cpuPercent: number | null;
+  cpuCores: Array<{ core: number; load: number }> | null;
+  memoryUsedBytes: number | null;
+  memoryTotalBytes: number | null;
+  memoryPercent: number | null;
+  swapUsedBytes: number | null;
+  swapTotalBytes: number | null;
+  swapPercent: number | null;
+  networkInterface: string | null;
+  networkRxBytes: number | null;
+  networkTxBytes: number | null;
+  networkRxSec: number | null;
+  networkTxSec: number | null;
+}
+
+export interface SystemSpike {
+  time: Date;
+  metricType: 'cpu' | 'memory' | 'swap' | 'network_rx' | 'network_tx';
+  severity: 'warning' | 'critical';
+  previousValue: number;
+  currentValue: number;
+  changePercent: number;
+  sustainedForSeconds: number;
+  details: Record<string, unknown> | null;
+}
+
+export interface MonitorConfig {
+  id: number;
+  enabled: boolean;
+  pollingIntervalSeconds: number;
+  dataRetentionDays: number;
+  cpuSpikeThresholdPercent: number;
+  cpuSpikeSustainedSeconds: number;
+  cpuCriticalThreshold: number;
+  memorySpikeThresholdPercent: number;
+  memorySpikeSustainedSeconds: number;
+  memoryCriticalThreshold: number;
+  swapSpikeThresholdPercent: number;
+  swapSpikeSustainedSeconds: number;
+  swapCriticalThreshold: number;
+  networkSpikeThresholdPercent: number;
+  networkSpikeSustainedSeconds: number;
+  updatedAt: Date;
+}
+
+export interface MonitorConfigInput {
+  enabled?: boolean;
+  pollingIntervalSeconds?: number;
+  dataRetentionDays?: number;
+  cpuSpikeThresholdPercent?: number;
+  cpuSpikeSustainedSeconds?: number;
+  cpuCriticalThreshold?: number;
+  memorySpikeThresholdPercent?: number;
+  memorySpikeSustainedSeconds?: number;
+  memoryCriticalThreshold?: number;
+  swapSpikeThresholdPercent?: number;
+  swapSpikeSustainedSeconds?: number;
+  swapCriticalThreshold?: number;
+  networkSpikeThresholdPercent?: number;
+  networkSpikeSustainedSeconds?: number;
+}
+
+export interface MetricsSummary {
+  current: SystemMetric | null;
+  history: SystemMetric[];
+  spikes: SystemSpike[];
+}
+
+export interface TimeSeriesData {
+  bucket: Date;
+  avgCpu: number;
+  maxCpu: number;
+  avgMemory: number;
+  maxMemory: number;
+  avgSwap: number;
+  avgNetworkRx: number;
+  avgNetworkTx: number;
+}
+
+export interface SpikeDetectionState {
+  consecutiveHighCpu: number;
+  consecutiveHighMemory: number;
+  consecutiveHighSwap: number;
+  consecutiveHighNetworkRx: number;
+  consecutiveHighNetworkTx: number;
+  lastCpuValues: number[];
+  lastMemoryValues: number[];
+  lastNetworkRxValues: number[];
+  lastNetworkTxValues: number[];
 }

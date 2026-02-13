@@ -7,10 +7,12 @@ import {
   updateIntegrity,
   updateAutoRollback
 } from '@/lib/config-manager';
+import { requireAuth } from '@/lib/auth';
 import { BackupConfig, CompressionConfig, IntegrityConfig, AutoRollbackConfig } from '@/types';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    await requireAuth(request);
     const config = await loadConfig();
     
     return NextResponse.json({
@@ -28,6 +30,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth(request);
     const config = await request.json() as BackupConfig;
     
     await saveConfig(config);
@@ -48,6 +51,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    await requireAuth(request);
     const { type, data } = await request.json();
     
     switch (type) {
