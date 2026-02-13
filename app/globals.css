@@ -116,3 +116,52 @@ body {
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-spin {
+    animation: none;
+  }
+  
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Server card hover effects */
+.server-card-hover {
+  @apply transition-all duration-300 ease-out;
+}
+
+.server-card-hover:hover {
+  @apply shadow-lg border-primary/20;
+  transform: translateY(-2px);
+}
+
+/* Action button interactions */
+.action-button {
+  @apply transition-all duration-200;
+}
+
+.action-button:hover {
+  @apply scale-[1.02];
+}
+
+.action-button:active {
+  @apply scale-[0.98];
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .server-card-hover:hover {
+    transform: none;
+  }
+  
+  .action-button:hover,
+  .action-button:active {
+    transform: none;
+  }
+}

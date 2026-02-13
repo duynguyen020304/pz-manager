@@ -49,7 +49,6 @@ export function ProgressStep({
   const isFailed = job.status === 'failed';
 
   const currentStage = restoreStages.find(s => job.progress < s.threshold) || restoreStages[restoreStages.length - 1];
-  const completedStages = restoreStages.filter(s => job.progress >= s.threshold);
 
   return (
     <div className="text-center py-8">

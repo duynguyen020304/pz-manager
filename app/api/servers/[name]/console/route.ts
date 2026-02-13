@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { startConsoleCapture, stopConsoleCapture, getConsoleSnapshot, getLogPath } from '@/lib/console-manager';
+import { NextResponse } from 'next/server';
+import { startConsoleCapture, stopConsoleCapture, getConsoleSnapshot } from '@/lib/console-manager';
 import { spawn } from 'child_process';
 
 interface Params {
@@ -40,7 +40,6 @@ export async function GET(request: Request, { params }: Params) {
       async start(controller) {
         let tailProcess: ReturnType<typeof spawn> | null = null;
         let lastPosition = 0;
-        const isReadingExistingContent = false;
 
         // Helper to send SSE message
         const sendEvent = (type: string, data: unknown) => {
@@ -66,7 +65,7 @@ export async function GET(request: Request, { params }: Params) {
           try {
             const initialContent = await getConsoleSnapshot(name, 100);
             sendEvent('init', { content: initialContent });
-          } catch (error) {
+          } catch {
             // If we can't get initial snapshot, still continue
             sendEvent('init', { content: '' });
           }

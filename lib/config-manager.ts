@@ -1,5 +1,4 @@
 import fs from 'fs/promises';
-import path from 'path';
 import { BackupConfig, Schedule, CompressionConfig, IntegrityConfig, AutoRollbackConfig } from '@/types';
 
 const CONFIG_PATH = process.env.BACKUP_CONFIG_PATH || '/root/Zomboid/backup-system/config/backup-config.json';

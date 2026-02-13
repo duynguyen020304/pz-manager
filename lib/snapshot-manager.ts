@@ -3,14 +3,13 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { Snapshot, SnapshotManifest, ServerStats, ScheduleStats, RestoreJob } from '@/types';
-import { loadConfig, getSnapshotsPath } from './config-manager';
-import { 
-  directoryExists, 
-  readJson, 
-  getDirectorySize, 
-  formatSize, 
+import { loadConfig } from './config-manager';
+import {
+  directoryExists,
+  readJson,
+  formatSize,
   formatTimestamp,
-  listDirectories 
+  listDirectories
 } from './file-utils';
 
 const execAsync = promisify(exec);
@@ -162,9 +161,8 @@ async function executeRestore(
   job.status = 'running';
   job.message = 'Starting restore operation...';
   job.progress = 10;
-  
+
   try {
-    const config = await loadConfig();
     const restoreScript = '/root/Zomboid/backup-system/bin/restore.sh';
     
     // Check if script exists
@@ -178,7 +176,7 @@ async function executeRestore(
     job.message = 'Executing restore script...';
 
     // Execute restore script with auto-confirmation (pipes "yes" to stdin)
-    const { stdout, stderr } = await execAsync(
+    const { stderr } = await execAsync(
       `echo "yes" | "${restoreScript}" "${serverName}" "${snapshotPath}"`,
       { timeout: 300000 } // 5 minute timeout
     );

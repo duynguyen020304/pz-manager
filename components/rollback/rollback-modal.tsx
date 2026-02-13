@@ -12,7 +12,7 @@ import {
   ConfirmStep,
   ProgressStep
 } from './steps';
-import { StepIndicator, type Step } from './step-indicator';
+import { type Step } from './step-indicator';
 
 // Type guard to check if job is a RestoreJob
 function isRestoreJob(job: RestoreJob | ServerJob | undefined): job is RestoreJob {
@@ -31,14 +31,12 @@ interface RollbackModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialServer?: string | null;
-  initialSnapshot?: string | null;
 }
 
 export function RollbackModal({
   isOpen,
   onClose,
-  initialServer,
-  initialSnapshot
+  initialServer
 }: RollbackModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedServer, setSelectedServer] = useState<string | null>(initialServer || null);

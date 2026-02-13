@@ -14,7 +14,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
-  User
+  User,
+  Users,
+  UserCog
 } from 'lucide-react';
 import { useState } from 'react';
 import { logout } from '@/lib/api';
@@ -26,6 +28,8 @@ const navigation = [
   { name: 'Servers', href: '/servers', icon: Server },
   { name: 'Schedules', href: '/schedules', icon: Clock },
   { name: 'Logs', href: '/logs', icon: FileText },
+  { name: 'Accounts', href: '/accounts', icon: Users },
+  { name: 'Roles', href: '/roles', icon: UserCog },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

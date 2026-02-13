@@ -185,3 +185,115 @@ export interface ServerModsConfig {
   workshopItems: ServerMod[];
   maps: string[];
 }
+
+// ============================================
+// USER MANAGEMENT TYPES
+// ============================================
+
+export interface Role {
+  id: number;
+  name: string;
+  description: string;
+  permissions: Record<string, string[]>;
+  isSystem: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email: string | null;
+  roleId: number;
+  isActive: boolean;
+  lastLoginAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserWithRole extends User {
+  role: Role;
+  password_hash?: string;
+}
+
+export interface Session {
+  id: string;
+  userId: number;
+  token: string;
+  expiresAt: Date;
+  createdAt: Date;
+  ipAddress: string | null;
+  userAgent: string | null;
+}
+
+export interface SessionWithUser extends Session {
+  user: UserWithRole;
+}
+
+export interface AuditLog {
+  time: Date;
+  userId: number | null;
+  username: string | null;
+  action: string;
+  resourceType: string;
+  resourceId: string | null;
+  details: Record<string, unknown> | null;
+  ipAddress: string | null;
+}
+
+// Permission types
+export type PermissionAction = 'view' | 'create' | 'edit' | 'delete' | 'start' | 'stop' | 'configure' | 'restore' | '*';
+
+export type PermissionResource =
+  | 'servers'
+  | 'backups'
+  | 'schedules'
+  | 'settings'
+  | 'logs'
+  | 'users'
+  | 'roles'
+  | '*';
+
+// User creation/update types
+export interface CreateUserInput {
+  username: string;
+  email?: string;
+  password: string;
+  roleId: number;
+  isActive?: boolean;
+}
+
+export interface UpdateUserInput {
+  username?: string;
+  email?: string;
+  password?: string;
+  roleId?: number;
+  isActive?: boolean;
+}
+
+// Role creation/update types
+export interface CreateRoleInput {
+  name: string;
+  description?: string;
+  permissions: Record<string, string[]>;
+}
+
+export interface UpdateRoleInput {
+  name?: string;
+  description?: string;
+  permissions?: Record<string, string[]>;
+}
+
+// Pagination types
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}

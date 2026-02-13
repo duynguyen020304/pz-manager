@@ -6,7 +6,7 @@ export async function POST(
   { params }: { params: Promise<{ name: string }> }
 ) {
   try {
-    const { name } = await params;
+    await params;
     const body = await request.json();
 
     if (!body.jobId) {

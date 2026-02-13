@@ -3,14 +3,14 @@ import { ReactQueryProvider } from '@/components/providers/react-query-provider'
 import { SidebarProvider } from '@/components/providers/sidebar-provider';
 import { Sidebar } from '@/components/sidebar';
 import { TopHeader } from '@/components/top-header';
-import { getSession } from '@/lib/auth';
+import { getSessionCookie } from '@/lib/auth';
 
 export default async function SchedulesLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getSession();
+  const session = await getSessionCookie();
   
   if (!session) {
     redirect('/');

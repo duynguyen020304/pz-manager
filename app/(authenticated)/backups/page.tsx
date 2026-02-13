@@ -19,9 +19,8 @@ export default function BackupsPage() {
   const [selectedSchedule, setSelectedSchedule] = useState<string>('');
   const [snapshotToDelete, setSnapshotToDelete] = useState<Snapshot | null>(null);
   const [rollbackServer, setRollbackServer] = useState<string | null>(null);
-  const [rollbackSnapshot, setRollbackSnapshot] = useState<string | null>(null);
   
-  const { data: servers, isLoading: serversLoading } = useServers();
+  const { data: servers } = useServers();
   const { data: snapshots, isLoading: snapshotsLoading } = useSnapshots(
     selectedServer,
     selectedSchedule || undefined
@@ -150,7 +149,6 @@ export default function BackupsPage() {
                             <button
                               onClick={() => {
                                 setRollbackServer(selectedServer);
-                                setRollbackSnapshot(snapshot.path);
                               }}
                               className="p-2 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-md transition-colors"
                               title="Rollback to this snapshot"
@@ -254,10 +252,8 @@ export default function BackupsPage() {
           isOpen={true}
           onClose={() => {
             setRollbackServer(null);
-            setRollbackSnapshot(null);
           }}
           initialServer={rollbackServer}
-          initialSnapshot={rollbackSnapshot}
         />
       )}
     </div>

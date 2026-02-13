@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { Server, Snapshot, ServerStats, BackupConfig, RestoreJob, ServerStatus, ServerJob, ServerModsConfig } from '@/types';
+import { RestoreJob, ServerJob, ServerModsConfig } from '@/types';
 import * as api from '@/lib/api';
 
 // Servers

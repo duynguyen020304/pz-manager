@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Info, AlertCircle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 import { type ReactNode } from 'react';
 
 export interface WarningBoxProps {

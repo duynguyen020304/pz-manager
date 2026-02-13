@@ -1,17 +1,15 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  FileText,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
   AlertTriangle,
   Server,
-  Calendar,
   Download,
   RefreshCw,
-  Filter,
   Search
 } from 'lucide-react';
 

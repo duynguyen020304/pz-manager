@@ -14,13 +14,14 @@ npm run build
 # Start production server (binds to 127.0.0.1)
 npm start
 
-# Run ESLint
+# Run ESLint on all files
 npm run lint
 
-# Run lint on specific file
+# Run ESLint on specific file
 npx eslint app/api/servers/route.ts
+npx eslint components/ui/button.tsx
 
-# No test framework configured
+# No test framework configured - do not add tests
 ```
 
 ## Project Stack
@@ -30,29 +31,34 @@ npx eslint app/api/servers/route.ts
 - **UI**: React 19, Tailwind CSS v4
 - **State**: TanStack Query (React Query) v5
 - **Auth**: Session-based with bcryptjs
+- **Package Manager**: npm
 
-## Code Style
+## Code Style Guidelines
 
 ### TypeScript
-- Strict mode enabled - always define types explicitly
+- Strict mode enabled - always define explicit types
 - Target: ES2017, Module: ESNext
 - Path alias: `@/` for all imports
 - Avoid `any`; use `unknown` with type guards
+- No unused variables or parameters
 
 ### Import Order
 ```typescript
-// 1. External dependencies
-import { useQuery } from '@tanstack/react-query';
-import { NextRequest, NextResponse } from 'next/server';
+// 1. External dependencies (React, TanStack Query)
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React from 'react';
 
 // 2. Next.js built-ins
+import { NextRequest, NextResponse } from 'next/server';
 import Link from 'next/link';
-import { Metadata } from 'next';
 
-// 3. Internal imports
+// 3. Internal types
 import { Server, ApiResponse } from '@/types';
+
+// 4. Internal components/hooks/lib
 import { Sidebar } from '@/components/sidebar';
 import { useServers } from '@/hooks/use-api';
+import * as api from '@/lib/api';
 ```
 
 ### Naming Conventions
@@ -60,36 +66,39 @@ import { useServers } from '@/hooks/use-api';
 | Type | Convention | Example |
 |------|------------|---------|
 | Files | kebab-case | `snapshot-manager.ts` |
-| Components | PascalCase | `Sidebar`, `StatCard` |
+| Components | PascalCase | `ServerCard`, `RollbackModal` |
 | Functions | camelCase | `getServers`, `useQuery` |
 | Types/Interfaces | PascalCase | `Server`, `BackupConfig` |
-| Constants | UPPERCASE | `API_BASE`, `SAVES_PATH` |
+| Constants | UPPER_SNAKE | `SAVES_PATH`, `API_BASE` |
+| Hooks | camelCase starting with 'use' | `useServers`, `useMutation` |
 
 ### React Components
-- Functional components with hooks
-- Add `'use client'` for client components
-- Destructure props in parameters
-- Define prop interfaces before components
+- Functional components with hooks only
+- Add `'use client'` directive for client components
+- Destructure props in function parameters
+- Define interfaces before components
+- Use semantic Tailwind classes
 
 ```typescript
 'use client';
 
-interface Props {
-  title: string;
-  value: string | number;
-  loading?: boolean;
+import { Server } from '@/types';
+
+interface ServerCardProps {
+  server: Server;
+  onDelete: () => void;
 }
 
-export function StatCard({ title, value, loading }: Props) {
-  const [state, setState] = useState<string>('');
-  return <div>{value}</div>;
+export function ServerCard({ server, onDelete }: ServerCardProps) {
+  return <div className="bg-card rounded-lg border border-border">{server.name}</div>;
 }
 ```
 
 ### API Routes Pattern
-- Use `NextRequest`/`NextResponse`
-- Return `ApiResponse<T>`: `{ success: boolean, data?: T, error?: string }`
-- Log errors with context, use type guards for messages
+- Use `NextRequest`/`NextResponse` from next/server
+- Return consistent `ApiResponse<T>` format
+- Log errors with context using console.error
+- Use type guards for error messages
 
 ```typescript
 export async function GET() {
@@ -125,39 +134,63 @@ export function useAddServer() {
 ```
 
 ### Tailwind CSS
-- Use semantic colors from globals.css
-- Prefer `bg-card`, `text-foreground`, `border-border`
+- Use semantic color variables from globals.css
+- Prefer: `bg-card`, `text-foreground`, `border-border`, `text-muted-foreground`
 - Tailwind v4 uses `@import "tailwindcss"` (not @tailwind directives)
+- Use `@apply` in CSS files for reusable utilities
 
 ```tsx
 <div className="bg-card rounded-lg border border-border p-6">
   <h1 className="text-2xl font-bold text-foreground">Title</h1>
+  <p className="text-muted-foreground">Description</p>
 </div>
 ```
 
 ### API Client (`lib/api.ts`)
-- Use `fetchApi<T>` helper for all calls
+- Use `fetchApi<T>` helper for all API calls
 - Include `credentials: 'include'` for auth
-- Throw when `!data.success`
+- Throw error when `!data.success`
+- Encode URI components in URLs
 
 ## File Structure
 
 ```
-app/                   # Next.js App Router
-├── api/              # API routes
-├── (authenticated)/  # Protected pages
-├── layout.tsx        # Root layout
-└── globals.css       # CSS variables & Tailwind
-components/           # React components
-├── providers/        # Context providers
-└── *.tsx            # UI components
-hooks/                # React Query hooks
-lib/                  # Utilities
-├── api.ts           # API client
-├── auth.ts          # Authentication
-└── *-manager.ts     # Domain managers
-types/                # TypeScript definitions
-└── index.ts         # All interfaces
+app/                          # Next.js App Router
+├── (authenticated)/          # Protected pages (group route)
+│   ├── dashboard/
+│   ├── servers/
+│   ├── backups/
+│   ├── rollback/
+│   ├── settings/
+│   └── logs/
+├── api/                      # API routes
+│   ├── auth/
+│   ├── servers/
+│   └── config/
+├── schedules/                # Public schedules page
+├── layout.tsx                # Root layout
+├── page.tsx                  # Login page
+└── globals.css               # CSS variables & Tailwind
+components/                   # React components
+├── providers/                # Context providers
+├── servers/                  # Server-related components
+├── rollback/                 # Rollback wizard components
+├── ui/                       # Reusable UI components
+└── *.tsx                    # Top-level components
+hooks/                        # React Query hooks
+└── use-api.ts               # All API hooks
+lib/                          # Utilities
+├── api.ts                   # API client
+├── auth.ts                  # Authentication
+├── config-manager.ts        # Config operations
+├── server-manager.ts        # Server operations
+├── snapshot-manager.ts      # Snapshot operations
+├── console-manager.ts       # Console operations
+├── mod-manager.ts           # Mod operations
+└── file-utils.ts           # File utilities
+types/                        # TypeScript definitions
+└── index.ts                # All type interfaces
+public/                       # Static assets
 ```
 
 ## Environment Variables
@@ -165,17 +198,20 @@ types/                # TypeScript definitions
 Required in `.env.local`:
 ```bash
 ADMIN_PASSWORD_HASH=          # bcrypt hash
-SESSION_SECRET=               # Random secret
+SESSION_SECRET=               # Random secret (32+ chars)
 ZOMBOID_PATH=/root/Zomboid
 BACKUP_CONFIG_PATH=/root/Zomboid/backup-system/config/backup-config.json
 SNAPSHOTS_PATH=/root/Zomboid/backup-system/snapshots
 ```
 
-## Key Notes
+## Key Technical Details
 
-- Application runs on port 3001 in development
+- Development server runs on port 3001
+- Production server binds to 127.0.0.1 (port 3000)
 - Requires read/write access to Zomboid backup system
 - Next.js config: `serverExternalPackages: ['bcryptjs']`
 - Path mapping: `"@/*": ["./*"]` in tsconfig.json
-- No test framework currently configured
+- No test framework - do not add tests
 - Always run `npm run lint` after making changes
+- Dark theme only (defined in globals.css)
+- Session-based authentication with HTTP-only cookies

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg17
+    container_name: zomboid-timescaledb
+    environment:
+      POSTGRES_USER: zomboid_admin
+      POSTGRES_PASSWORD: zomboid_test_123
+      POSTGRES_DB: zomboid_manager
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zomboid_admin -d zomboid_manager"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - zomboid-network
+
+volumes:
+  timescale_data:
+    driver: local
+
+networks:
+  zomboid-network:
+    driver: bridge

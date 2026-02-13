@@ -2,11 +2,10 @@
 
 import { useConfig, useSaveConfig } from '@/hooks/use-api';
 import { useState } from 'react';
-import { 
-  Clock, 
-  Plus, 
-  Trash2, 
-  Check, 
+import {
+  Clock,
+  Plus,
+  Trash2,
   X,
   Calendar,
   AlertCircle,
@@ -36,7 +35,6 @@ const intervalOptions = [
 export default function SchedulesPage() {
   const { data: config, isLoading } = useConfig();
   const saveConfig = useSaveConfig();
-  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newSchedule, setNewSchedule] = useState<Partial<Schedule>>({
     name: '',
@@ -105,10 +103,6 @@ export default function SchedulesPage() {
 
   const getIntervalLabel = (interval: string) => {
     return intervalOptions.find(opt => opt.value === interval)?.label || interval;
-  };
-
-  const getIntervalShort = (interval: string) => {
-    return intervalOptions.find(opt => opt.value === interval)?.short || interval;
   };
 
   if (isLoading) {

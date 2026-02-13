@@ -9,7 +9,6 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Terminal,
   Bug,
   XCircle as XCircleIcon
 } from 'lucide-react';
@@ -33,7 +32,7 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
 
   const startServer = useStartServer();
   const abortStart = useAbortStart();
-  const { data: job, isLoading: isPollingJob } = useRestoreJob(jobId);
+  const { data: job } = useRestoreJob(jobId);
   const { data: installations } = useInstallations();
 
   // Handle successful completion
@@ -46,12 +45,10 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [job?.status, onSuccess, onClose]);
+  }, [job, onSuccess, onClose]);
 
-  // Track elapsed time
   useEffect(() => {
     if (!job || (job.status !== 'pending' && job.status !== 'running')) {
-      setElapsedTime(0);
       return;
     }
 
@@ -60,7 +57,7 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [job?.status]);
+  }, [job]);
 
   // Format elapsed time helper
   const formatTime = (seconds: number) => {
@@ -71,6 +68,7 @@ export function ServerStartModal({ serverName, isOpen, onClose, onSuccess }: Ser
 
   // Handle start button click
   const handleStart = async () => {
+    setElapsedTime(0);
     try {
       const result = await startServer.mutateAsync({
         serverName,

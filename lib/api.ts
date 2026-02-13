@@ -1,4 +1,4 @@
-import { ApiResponse, Server, Snapshot, ServerStats, BackupConfig, RestoreJob, ServerStatus, ServerJob, PZInstallation, ServerModsConfig } from '@/types';
+import { ApiResponse, Server, Snapshot, ServerStats, BackupConfig, RestoreJob, ServerStatus, ServerJob, PZInstallation, ServerModsConfig, UserWithRole, Role } from '@/types';
 
 const API_BASE = '/api';
 
@@ -22,10 +22,10 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 // Auth
-export async function login(password: string): Promise<{ message: string }> {
+export async function login(username: string, password: string): Promise<{ message: string }> {
   return fetchApi(`${API_BASE}/auth`, {
     method: 'POST',
-    body: JSON.stringify({ password })
+    body: JSON.stringify({ username, password })
   });
 }
 
@@ -181,4 +181,149 @@ export async function getInstallations(): Promise<PZInstallation[]> {
 // Mods
 export async function getServerMods(serverName: string): Promise<ServerModsConfig> {
   return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/mods`);
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+export interface UsersResponse {
+  users: UserWithRole[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  stats: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+}
+
+export async function getUsers(params?: {
+  page?: number;
+  limit?: number;
+  roleId?: number;
+  isActive?: boolean;
+  search?: string;
+}): Promise<UsersResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set('page', params.page.toString());
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.roleId) searchParams.set('roleId', params.roleId.toString());
+  if (params?.isActive !== undefined) searchParams.set('isActive', params.isActive.toString());
+  if (params?.search) searchParams.set('search', params.search);
+
+  const query = searchParams.toString();
+  return fetchApi(`${API_BASE}/users${query ? `?${query}` : ''}`);
+}
+
+export async function getUser(id: number): Promise<{ user: UserWithRole }> {
+  return fetchApi(`${API_BASE}/users/${id}`);
+}
+
+export async function createUser(data: {
+  username: string;
+  email?: string;
+  password: string;
+  roleId: number;
+  isActive?: boolean;
+}): Promise<{ user: UserWithRole }> {
+  return fetchApi(`${API_BASE}/users`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function updateUser(
+  id: number,
+  data: Partial<{
+    username: string;
+    email: string;
+    password: string;
+    roleId: number;
+    isActive: boolean;
+  }>
+): Promise<{ user: UserWithRole }> {
+  return fetchApi(`${API_BASE}/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function deleteUser(id: number): Promise<{ message: string }> {
+  return fetchApi(`${API_BASE}/users/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+// ============================================
+// ROLE MANAGEMENT
+// ============================================
+
+export interface RolesResponse {
+  roles: Role[];
+}
+
+export async function getRoles(): Promise<RolesResponse> {
+  return fetchApi(`${API_BASE}/roles`);
+}
+
+export async function getRole(id: number): Promise<{ role: Role & { userCount?: number } }> {
+  return fetchApi(`${API_BASE}/roles/${id}`);
+}
+
+export async function createRole(data: {
+  name: string;
+  description?: string;
+  permissions: Record<string, string[]>;
+}): Promise<{ role: Role }> {
+  return fetchApi(`${API_BASE}/roles`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function updateRole(
+  id: number,
+  data: Partial<{
+    name: string;
+    description: string;
+    permissions: Record<string, string[]>;
+  }>
+): Promise<{ role: Role }> {
+  return fetchApi(`${API_BASE}/roles/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function deleteRole(id: number): Promise<{ message: string }> {
+  return fetchApi(`${API_BASE}/roles/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+// ============================================
+// SESSION / CURRENT USER
+// ============================================
+
+export interface CurrentUserResponse {
+  user: {
+    id: number;
+    username: string;
+    email: string | null;
+    role: Role;
+  };
+  session: {
+    id: string;
+    expiresAt: Date;
+    createdAt: Date;
+  };
+}
+
+export async function getCurrentUser(): Promise<CurrentUserResponse> {
+  return fetchApi(`${API_BASE}/sessions`);
 }

@@ -7,7 +7,7 @@ import {
   updateIntegrity,
   updateAutoRollback
 } from '@/lib/config-manager';
-import { BackupConfig, Schedule, CompressionConfig, IntegrityConfig, AutoRollbackConfig } from '@/types';
+import { BackupConfig, CompressionConfig, IntegrityConfig, AutoRollbackConfig } from '@/types';
 
 export async function GET() {
   try {

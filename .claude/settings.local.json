@@ -31,7 +31,15 @@
       "Bash(git config:*)",
       "Bash(xargs:*)",
       "Bash(journalctl:*)",
-      "Bash(/opt/pzserver/jre64/bin/java:*)"
+      "Bash(/opt/pzserver/jre64/bin/java:*)",
+      "Bash(git push:*)",
+      "Bash(gh auth status:*)",
+      "Bash(gh repo create:*)",
+      "Bash(grep:*)",
+      "Bash(exit_code=$?)",
+      "Bash(echo:*)",
+      "Bash(docker exec:*)",
+      "Bash(./scripts/reset-superadmin.sh:*)"
     ]
   }
 }

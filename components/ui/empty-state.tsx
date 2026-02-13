@@ -1,7 +1,6 @@
 'use client';
 
 import { type LucideIcon } from 'lucide-react';
-import { type ReactNode } from 'react';
 
 export interface EmptyStateProps {
   icon: LucideIcon;
@@ -12,6 +11,7 @@ export interface EmptyStateProps {
     onClick: () => void;
   };
   className?: string;
+  children?: React.ReactNode;
 }
 
 export function EmptyState({

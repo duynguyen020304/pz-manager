@@ -1,15 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { login } from '@/lib/api';
-import { Shield, Lock, AlertCircle } from 'lucide-react';
+import { Shield, Lock, User, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +16,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(password);
+      await login(username, password);
       // Use window.location for more reliable navigation after cookie is set
       window.location.href = '/dashboard';
     } catch (err) {
@@ -45,11 +44,33 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label 
-                htmlFor="password" 
+              <label
+                htmlFor="username"
                 className="block text-sm font-medium text-foreground mb-2"
               >
-                Admin Password
+                Username
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  placeholder="Enter username"
+                  disabled={isLoading}
+                  autoComplete="username"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
+                Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -61,6 +82,7 @@ export default function LoginPage() {
                   className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                   placeholder="Enter password"
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
               </div>
             </div>
@@ -74,7 +96,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={isLoading || !password}
+              disabled={isLoading || !username || !password}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-3 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Signing in...' : 'Sign In'}

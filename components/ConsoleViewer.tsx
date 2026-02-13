@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Terminal as TerminalIcon, Wifi, WifiOff, AlertCircle, Pause, Play } from 'lucide-react';
 
 interface ConsoleViewerProps {
@@ -19,7 +19,7 @@ export function ConsoleViewer({
   className = ''
 }: ConsoleViewerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = React.useState(true);
+  const [autoScroll, setAutoScroll] = useState(true);
   const wasAtBottom = useRef(true);
 
   // Auto-scroll to bottom when new logs arrive
@@ -121,6 +121,3 @@ export function ConsoleViewer({
     </div>
   );
 }
-
-// Import React for useState
-import React from 'react';

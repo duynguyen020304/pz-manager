@@ -30,6 +30,19 @@ npm start
 
 # Linting
 npm run lint
+
+# Testing
+npm test                  # Run tests in watch mode
+npm run test:run          # Run tests once
+npm run test:ui           # Run tests with UI
+npm run test:coverage     # Run tests with coverage
+
+# Database (TimescaleDB via Docker)
+npm run db:start          # Start database container
+npm run db:stop           # Stop database container
+npm run db:reset          # Reset database (deletes data)
+npm run db:migrate        # Run admin migration
+npm run db:seed           # Seed database with test data
 ```
 
 ### Production Deployment
@@ -72,10 +85,12 @@ journalctl -u zomboid-web-manager -f
 - **TypeScript 5** - Full type safety
 - **Tailwind CSS 4** - Modern utility-first styling
 - **TanStack React Query 5** - Server state management with caching
+- **PostgreSQL with TimescaleDB** - Primary database for users, roles, sessions, audit logs
 - **bcryptjs** - Password hashing (10 salt rounds)
-- **Session-based auth** with HTTP-only cookies
+- **Session-based auth** with HTTP-only cookies and database-backed sessions
 - **recharts** - Data visualization charts
 - **tmux** - Server session management for start/stop operations
+- **Vitest** - Unit testing with pg-mem for database mocking
 
 ### Directory Structure
 
@@ -95,16 +110,25 @@ zomboid-web-manager/
 │   │   │       ├── status/route.ts   # GET single server status
 │   │   │       ├── start/route.ts    # POST start server
 │   │   │       ├── stop/route.ts     # POST stop server
+│   │   │       ├── abort/route.ts    # POST abort server start
 │   │   │       ├── console/route.ts  # SSE console streaming
 │   │   │       └── mods/route.ts     # GET server mods
+│   │   ├── users/route.ts            # GET list, POST create user
+│   │   ├── users/[id]/route.ts       # GET, PATCH, DELETE user
+│   │   ├── roles/route.ts            # GET list, POST create role
+│   │   ├── roles/[id]/route.ts       # GET, PATCH, DELETE role
+│   │   ├── sessions/route.ts         # GET current session info
+│   │   ├── audit-logs/route.ts       # GET audit log entries
 │   │   ├── installations/route.ts    # GET PZ installations
-│   │   ├── snapshots/route.ts        # GET all snapshots with filtering
+│   │   ├── snapshots/route.ts        # GET all snapshots (rich/paginated)
 │   │   ├── config/route.ts           # GET/PATCH/POST config
 │   │   └── jobs/[id]/route.ts        # Poll restore/job status
 │   ├── page.tsx                      # Login page
 │   ├── (authenticated)/              # Protected route group
 │   │   ├── dashboard/page.tsx        # Dashboard overview
 │   │   ├── servers/page.tsx          # Server management (with start/stop)
+│   │   ├── accounts/page.tsx         # User management (CRUD)
+│   │   ├── roles/page.tsx            # Role management (CRUD)
 │   │   ├── schedules/page.tsx        # Schedule management (full CRUD)
 │   │   ├── backups/page.tsx          # Backup browser (not in sidebar nav)
 │   │   ├── rollback/page.tsx         # 5-step restore wizard (not in sidebar nav)
@@ -124,17 +148,31 @@ zomboid-web-manager/
 │   ├── ConsoleViewer.tsx             # Console log viewer
 │   └── ModList.tsx                   # Server mods display
 ├── hooks/
-│   └── use-api.ts                    # React Query hooks for all API calls
+│   ├── use-api.ts                    # React Query hooks for server/backup APIs
+│   └── use-api-users.ts              # React Query hooks for user/role APIs
 ├── lib/                              # Business logic
 │   ├── api.ts                        # API client functions
 │   ├── auth.ts                       # Authentication utilities
+│   ├── db.ts                         # PostgreSQL connection and query helpers
+│   ├── user-manager.ts               # User CRUD operations
+│   ├── role-manager.ts               # Role CRUD and permission checking
 │   ├── config-manager.ts             # Config file operations (5s cache)
 │   ├── console-manager.ts            # Console capture via tmux pipe-pane
 │   ├── file-utils.ts                 # File system utilities
 │   ├── mod-manager.ts                # Server mod configuration parsing
 │   ├── snapshot-manager.ts           # Backup operations, restore job tracking
 │   └── server-manager.ts             # Server start/stop, status, job tracking
+├── scripts/
+│   ├── init-db.sql                   # Database schema and seed data
+│   └── migrate-admin.js              # Admin user migration script
+├── __tests__/
+│   ├── setup/setup.ts                # Test setup (pg-mem or real DB)
+│   ├── setup/test-db.ts              # pg-mem test database factory
+│   ├── mocks/data.ts                 # Test mock data
+│   └── unit/lib/                     # Unit tests for lib modules
 ├── types/index.ts                    # TypeScript definitions
+├── vitest.config.ts                  # Vitest configuration
+├── docker-compose.yml                # TimescaleDB container config
 └── tsconfig.json                     # @/* path alias maps to project root
 ```
 
@@ -164,17 +202,24 @@ node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('your-p
 Component → useQuery/useMutation hook → lib/api.ts → API route → lib/business-logic → File system/Scripts
 ```
 
-All hooks are in `hooks/use-api.ts`:
+All hooks are in `hooks/use-api.ts` and `hooks/use-api-users.ts`:
+
+**Server/Backup hooks** (`use-api.ts`):
 - `useServers()`, `useAddServer()`, `useRemoveServer()`, `useDetectServers()`
 - `useSnapshots(serverName, schedule?)`, `useDeleteSnapshot()`
-- `useAllSnapshots(server?, schedule?)` - Query all snapshots across servers
+- `useAllSnapshots(server?, schedule?, dateFrom?, dateTo?)` - Rich snapshots with pagination
 - `useServerStats(serverName)`
 - `useRestore()`, `useRestoreJob(jobId)`
 - `useConfig()`, `useSaveConfig()`, `useUpdateSchedule()`, `useUpdateCompression()`, `useUpdateIntegrity()`, `useUpdateAutoRollback()`
 - `useServerStatus(serverName)`, `useAllServerStatus()` - 10-second polling
-- `useStartServer()`, `useStopServer()`
+- `useStartServer()`, `useStopServer()`, `useAbortServerStart()`
 - `useInstallations()`, `useServerMods(serverName)`
 - `useConsoleStream(serverName, enabled)` - SSE-based console streaming
+
+**User/Role hooks** (`use-api-users.ts`):
+- `useUsers(params?)`, `useUser(id)`, `useCreateUser()`, `useUpdateUser()`, `useDeleteUser()`
+- `useRoles()`, `useRole(id)`, `useCreateRole()`, `useUpdateRole()`, `useDeleteRole()`
+- `useCurrentUser()` - Returns logged-in user with role
 
 ### API Response Format
 
@@ -186,6 +231,112 @@ All API responses use consistent `ApiResponse<T>` type:
   error?: string;
 }
 ```
+
+## Database Layer (PostgreSQL/TimescaleDB)
+
+The application uses PostgreSQL with TimescaleDB for user management, sessions, and audit logging.
+
+### Database Schema
+
+| Table | Purpose |
+|-------|---------|
+| `roles` | RBAC role definitions with JSONB permissions |
+| `users` | User accounts with foreign key to roles |
+| `sessions` | Server-side session storage with tokens |
+| `audit_logs` | Time-series audit log (TimescaleDB hypertable) |
+
+### Database Manager (lib/db.ts)
+
+Query helpers with automatic test mode detection:
+- `query<T>(sql, params)` - Execute query with auto client release
+- `queryOne<T>(sql, params)` - Returns first row or null
+- `transaction(callback)` - Execute with auto commit/rollback
+- `checkConnection()` - Health check
+
+**Test Mode:** When `NODE_ENV=test` and `USE_REAL_DATABASE != true`, uses pg-mem in-memory database. For integration tests, set `USE_REAL_DATABASE=true`.
+
+### User Management (lib/user-manager.ts)
+
+CRUD operations for users:
+- `createUser(input)` - Hashes password with bcrypt, validates uniqueness
+- `updateUser(id, input)` - Partial updates, password hashing if provided
+- `deleteUser(id)` - Prevents deletion of last superadmin
+- `listUsers({ page, limit, roleId, isActive, search })` - Paginated with filters
+- `getUserByUsernameWithRole(username)` - For authentication
+
+### Role Management (lib/role-manager.ts)
+
+RBAC with permission checking:
+- `hasPermission(role, resource, action)` - Superadmin has all, wildcard support
+- `createRole(input)` - Custom roles with JSONB permissions
+- `updateRole(id, input)` - Cannot rename system roles
+- `deleteRole(id)` - Cannot delete system roles, nulls user role_ids
+
+**Default Roles:** superadmin, admin, operator, viewer (system roles, cannot be deleted)
+
+### Permission Format
+
+Permissions stored as JSONB: `{ "resource": ["action1", "action2"] }`
+
+Example:
+```json
+{
+  "servers": ["view", "start", "stop"],
+  "backups": ["view", "restore"],
+  "logs": ["view"]
+}
+```
+
+Wildcard: `{ "*": ["*"] }` grants all permissions.
+
+### Audit Logging
+
+Audit logs use TimescaleDB hypertable with 1-day chunks:
+- `time` - Timestamp (primary partition key)
+- `user_id`, `username` - Actor identification
+- `action` - Action type (e.g., "user.login", "server.start")
+- `resource_type`, `resource_id` - Target resource
+- `details` - JSONB for additional context
+- `ip_address` - Client IP
+
+## Testing
+
+Tests use Vitest with jsdom environment. Database tests can use either pg-mem (unit) or real TimescaleDB (integration).
+
+### Test Structure
+
+```
+__tests__/
+├── setup/
+│   ├── setup.ts              # Global setup, chooses pg-mem or real DB
+│   └── test-db.ts            # pg-mem factory with schema bootstrapping
+├── mocks/
+│   └── data.ts               # Test fixtures (roles, users)
+└── unit/lib/
+    ├── role-manager.test.ts  # Role CRUD and permission tests
+    └── user-manager.test.ts  # User CRUD tests
+```
+
+### Running Tests
+
+```bash
+# Unit tests (pg-mem, fast)
+npm test
+
+# Single run (CI mode)
+npm run test:run
+
+# Integration tests (requires running TimescaleDB)
+USE_REAL_DATABASE=true npm test
+```
+
+### Test Database Setup
+
+Unit tests use pg-mem with in-memory PostgreSQL emulation. The test setup:
+1. Creates pg-mem database instance
+2. Runs init-db.sql schema
+3. Seeds default roles
+4. Stores in globalThis for access by lib/db.ts
 
 ## Server Management (lib/server-manager.ts)
 
@@ -204,9 +355,9 @@ Servers are detected by:
 
 ### Port Calculation
 
-Ports are automatically calculated based on server position in config:
-- Base ports: 16261 (default), 16262 (UDP), 27015 (RCON)
-- Increment: +10 per server index
+Ports use smart calculation:
+- First tries default ports (16261/16262/27015) if available
+- Falls back to index-based calculation (+10 per server index)
 - Example: Server at index 1 → 16271/16272/27025
 
 ### Starting a Server
@@ -214,9 +365,10 @@ Ports are automatically calculated based on server position in config:
 The `startServer()` function:
 1. Creates a detached tmux session: `tmux new-session -d -s pz-{serverName}`
 2. Sends start command: `{installation.path}/start-server.sh -servername {name} -nosteam`
-3. Waits up to 30 seconds for process to spawn
-4. Verifies port binding (up to 10 seconds)
+3. Waits up to 1 hour (3600s) for process to spawn
+4. Verifies port binding (up to 1 hour)
 5. Returns jobId for progress tracking
+6. Can be aborted via `/api/servers/[name]/abort` before completion
 
 **Start options**:
 - `debug?: boolean` - Adds `-debug` flag
@@ -233,13 +385,70 @@ The `stopServer()` function:
 
 ### Job Tracking
 
-Server start/stop operations use the same job system as restores:
+Server start/stop operations use job system:
 - In-memory Map store (lost on restart)
 - Job ID format: `{start|stop}-{timestamp}-{random}`
 - Progress stages: 10% → 20% → ... → 100%
 - Status: `pending` | `running` | `completed` | `failed`
 
 The `/api/jobs/[id]` endpoint returns either `RestoreJob` or `ServerJob` type.
+
+## Console Manager (lib/console-manager.ts)
+
+This library manages live server console output streaming using tmux pipe-pane:
+
+**Console Capture:**
+- Uses `tmux pipe-pane` to capture console output to `/tmp/pz-console-{server}.log`
+- Reference counting for multiple clients - capture only stops when last client disconnects
+- Initial buffer capture (100 lines) on first connect via `tmux capture-pane`
+- Auto-cleanup after 1 minute of no clients
+- Active capture state tracking via in-memory Map
+
+**Console State:**
+- `startConsoleCapture(serverName)` - Starts capture, returns log path
+- `stopConsoleCapture(serverName)` - Decrements client count, stops when 0
+- `getConsoleSnapshot(serverName, lines)` - Gets N lines from tmux buffer
+- `isCapturing(serverName)` - Check if currently capturing
+
+**SSE Streaming:**
+- `/api/servers/[name]/console/route.ts` provides Server-Sent Events stream
+- Uses `tail -f` to follow log file changes
+- Event types: `connected`, `init`, `log`, `error`
+- Auto-reconnect handling in client hooks
+- File position tracking for incremental updates
+
+## Mod Manager (lib/mod-manager.ts)
+
+Parses server INI files to extract mod configuration:
+
+**Functions:**
+- `getServerMods(serverName)` - Returns full mod configuration
+- `getServerModSummary(serverName)` - Returns counts only
+
+**Parsed Data:**
+- `mods[]`: Array of local mod names (comma-separated in INI)
+- `workshopItems[]`: Array of `{workshopId, name}` objects (semicolon-separated, format: `id=name`)
+- `maps[]`: Array of map names (comma-separated, defaults to `Muldraugh, KY`)
+
+**INI Location:** `/root/Zomboid/Server/{servername}.ini`
+
+## Snapshot API (app/api/snapshots/route.ts)
+
+Rich snapshots endpoint with advanced filtering and metadata:
+
+**Query Parameters:**
+- `server?: string` - Filter by server name
+- `schedule?: string` - Filter by schedule type
+- `dateFrom?: ISO8601` - Filter snapshots after date
+- `dateTo?: ISO8601` - Filter snapshots before date
+- `offset?: number` - Pagination offset (default: 0)
+- `limit?: number` - Results per page (default: 50)
+
+**Response includes:**
+- Snapshots with metadata: status, integrity, compression stats, restore options, age
+- Pagination info: total, offset, limit, hasMore
+- Summary: total size, average size, compression ratio
+- Applied filters
 
 ## External System Integration
 
@@ -272,6 +481,41 @@ The config contains (see `types/index.ts`):
 - `integrity`: { enabled, algorithm, verifyAfterBackup, verifyAfterRestore }
 - `notifications`: { enabled, onSuccess, onFailure, onLowDisk, diskThreshold }
 - `performance`: { parallelBackup, maxParallelJobs, nice, ionice }
+- `autoRollback`: { enabled, schedule, cooldownMinutes, notifyPlayers }
+
+## API Endpoints
+
+### Users
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users` | List users (supports `?page&limit&roleId&isActive&search`) |
+| POST | `/api/users` | Create user |
+| GET | `/api/users/[id]` | Get user by ID |
+| PATCH | `/api/users/[id]` | Update user |
+| DELETE | `/api/users/[id]` | Delete user |
+
+### Roles
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/roles` | List all roles |
+| POST | `/api/roles` | Create custom role |
+| GET | `/api/roles/[id]` | Get role by ID |
+| PATCH | `/api/roles/[id]` | Update role (cannot rename system roles) |
+| DELETE | `/api/roles/[id]` | Delete role (system roles protected) |
+
+### Sessions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/sessions` | Get current session/user info |
+
+### Audit Logs
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/audit-logs` | List audit entries (supports `?userId&action&resourceType&from&to`) |
 
 ## Pages and Navigation
 
@@ -280,6 +524,8 @@ The config contains (see `types/index.ts`):
 The sidebar navigation (`components/sidebar.tsx`) includes:
 - **Dashboard** (`/dashboard`) - Overview with server status, quick actions
 - **Servers** (`/servers`) - Server detection, validation, add/remove, **start/stop controls**
+- **Accounts** (`/accounts`) - User management with CRUD operations
+- **Roles** (`/roles`) - Role management with CRUD operations
 - **Schedules** (`/schedules`) - Full CRUD for backup schedules
 - **Logs** (`/logs`) - Operation history viewer (currently mock data)
 - **Settings** (`/settings`) - Tabbed interface (Schedules/Servers/Settings)
@@ -302,7 +548,7 @@ The sidebar navigation (`components/sidebar.tsx`) includes:
 - Start/Stop buttons (disabled during starting/stopping)
 - Displays PID, uptime, ports when running
 - Auto-detect and manual server add
-- Console button (disabled, coming soon)
+- Console button (opens modal with live console stream)
 
 **Schedules Page** (`/schedules`):
 - Full CRUD operations for schedules
@@ -314,6 +560,18 @@ The sidebar navigation (`components/sidebar.tsx`) includes:
 - **Schedules Tab**: Quick toggle and retention adjustment
 - **Servers Tab**: View configured servers
 - **Settings Tab**: Compression toggle/level, integrity verification toggles
+
+**Accounts Page** (`/accounts`):
+- User table with username, email, role, status, last login
+- Create user modal with role selection
+- Edit user modal with password change option
+- Delete user with confirmation (prevents deleting last superadmin)
+
+**Roles Page** (`/roles`):
+- Role cards showing permissions by resource
+- Create custom roles with permission matrix
+- Edit role permissions (cannot rename system roles)
+- Delete custom roles (system roles protected)
 
 ## Important Implementation Notes
 
@@ -353,13 +611,21 @@ The `(authenticated)` folder creates a route group that doesn't appear in URLs b
 Required `.env.local` variables:
 
 ```bash
-ADMIN_PASSWORD_HASH=$2a$10$...     # bcrypt hash
-SESSION_SECRET=random_secret_key    # Random secret
+# Database (required for user management)
+DATABASE_URL=postgresql://zomboid_admin:password@localhost:5432/zomboid_manager
+
+# Authentication
+SESSION_SECRET=random_secret_key    # Random secret for session signing
+
+# Zomboid paths
 ZOMBOID_PATH=/root/Zomboid
 BACKUP_CONFIG_PATH=/root/Zomboid/backup-system/config/backup-config.json
 SNAPSHOTS_PATH=/root/Zomboid/backup-system/snapshots
+
 NODE_ENV=production
 ```
+
+**Development database:** Run `npm run db:start` to start TimescaleDB container via docker-compose.
 
 ## Styling Conventions
 
@@ -368,66 +634,12 @@ NODE_ENV=production
 - **Responsive**: Mobile-first approach with `lg:` breakpoints
 - **Icons**: Lucide React icon library
 - **Components**: Card-based layouts with `bg-card border border-border rounded-lg`
-
-## Console Manager (lib/console-manager.ts)
-
-This library manages live server console output streaming using tmux pipe-pane:
-
-**Console Capture:**
-- Uses `tmux pipe-pane` to capture console output to `/tmp/pz-console-{server}.log`
-- Reference counting for multiple clients - capture only stops when last client disconnects
-- Initial buffer capture (1000 lines) on first connect
-- Auto-cleanup after 1 minute of no clients
-- Active capture state tracking via in-memory Map
-
-**Console State:**
-- `startConsoleCapture(serverName)` - Starts capture, returns log path
-- `stopConsoleCapture(serverName)` - Decrements client count, stops when 0
-- `getConsoleSnapshot(serverName, lines)` - Gets N lines from tmux buffer
-- `isCapturing(serverName)` - Check if currently capturing
-
-**SSE Streaming:**
-- `/api/servers/[name]/console/route.ts` provides Server-Sent Events stream
-- Auto-reconnect handling in client hooks
-- File position tracking for incremental updates
-
-## Mod Manager (lib/mod-manager.ts)
-
-Parses server INI files to extract mod configuration:
-
-**Functions:**
-- `getServerMods(serverName)` - Returns full mod configuration
-- `getServerModSummary(serverName)` - Returns counts only
-
-**Parsed Data:**
-- `mods[]`: Array of local mod names (comma-separated in INI)
-- `workshopItems[]`: Array of `{workshopId, name}` objects (semicolon-separated, format: `id=name`)
-- `maps[]`: Array of map names (comma-separated, defaults to `Muldraugh, KY`)
-
-**INI Location:** `/root/Zomboid/Server/{servername}.ini`
-
-## Additional Components
-
-**ConsoleModal.tsx** - Modal dialog for viewing live server console
-**ConsoleViewer.tsx** - Terminal-style console output display with auto-scroll
-**ModList.tsx** - Display server mods, workshop items, and maps
-**top-header.tsx** - Header component with user info and logout
-
-## Additional Hooks
-
-- `useConsoleStream(serverName, enabled)` - SSE-based console streaming with auto-reconnect
-- `useServerMods(serverName)` - Fetch server mod configuration
-
-## Updated Server Start Timeouts
-
-Server start operations use extended timeouts for slower systems:
-- `PROCESS_SPAWN_TIMEOUT`: 240 seconds (4 minutes) - wait for PID to appear
-- `PORT_BINDING_TIMEOUT`: 120 seconds (2 minutes) - wait for port to bind
-- `POLL_INTERVAL_MS`: 1000ms (1 second) - between status checks
+- **Sidebar**: Collapsible with icon-only mode, hover tooltips
 
 ## Known Limitations
 
-- **Logs Page**: Currently uses mock data (`mockLogs` array in `app/(authenticated)/logs/page.tsx`). Real API integration is pending.
-- **Job Storage**: Restore and server jobs are stored in-memory (Map) and will be lost on server restart. For production, consider Redis or a database.
-- **Multi-installation**: Only default installation at `/opt/pzserver` is supported. The `installationId` option exists but is not fully implemented.
+- **Logs Page**: Currently uses mock data. Real API integration pending.
+- **Job Storage**: Restore and server jobs are stored in-memory (Map) and will be lost on server restart.
+- **Multi-installation**: Only default installation at `/opt/pzserver` is fully supported.
 - **Console Streaming**: Console capture state is in-memory and lost on server restart.
+- **Audit Logs**: API route exists but frontend integration pending.
