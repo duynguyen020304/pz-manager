@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { RestoreJob, ServerJob, ServerModsConfig, LogFilters } from '@/types';
+import { RestoreJob, ServerJob, ServerModsConfig, ModEntry, LogFilters } from '@/types';
 import * as api from '@/lib/api';
 
 // Servers
@@ -169,6 +169,47 @@ export function useServerMods(serverName: string) {
     queryKey: ['mods', serverName],
     queryFn: () => api.getServerMods(serverName),
     enabled: !!serverName
+  });
+}
+
+export function useServerModEntries(serverName: string) {
+  return useQuery<ModEntry[]>({
+    queryKey: ['mods', serverName, 'entries'],
+    queryFn: () => api.getServerModEntries(serverName),
+    enabled: !!serverName
+  });
+}
+
+export function useAddMod(serverName: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (workshopUrl: string) => api.addMod(serverName, workshopUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mods', serverName] });
+    }
+  });
+}
+
+export function useUpdateModOrder(serverName: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (mods: ModEntry[]) => api.updateModOrder(serverName, mods),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mods', serverName] });
+    }
+  });
+}
+
+export function useRemoveMod(serverName: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (workshopId: string) => api.removeMod(serverName, workshopId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mods', serverName] });
+    }
   });
 }
 

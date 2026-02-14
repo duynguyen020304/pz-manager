@@ -17,7 +17,8 @@ import {
   ServerCard,
   ServerCardSkeleton,
   AddServerModal,
-  DeleteConfirmModal
+  DeleteConfirmModal,
+  ModManagerModal
 } from '@/components/servers';
 
 export default function ServersPage() {
@@ -38,6 +39,7 @@ export default function ServersPage() {
   const [serverToStop, setServerToStop] = useState<string | null>(null);
   const [serverForConsole, setServerForConsole] = useState<string | null>(null);
   const [serverForRollback, setServerForRollback] = useState<string | null>(null);
+  const [serverForMods, setServerForMods] = useState<string | null>(null);
   const [hasDetectedBefore, setHasDetectedBefore] = useState(false);
 
   const handleAddServer = async (name: string) => {
@@ -102,6 +104,7 @@ export default function ServersPage() {
               onStop={() => setServerToStop(server.name)}
               onConsole={() => setServerForConsole(server.name)}
               onRollback={() => setServerForRollback(server.name)}
+              onManageMods={() => setServerForMods(server.name)}
             />
           ))}
         </div>
@@ -183,6 +186,14 @@ export default function ServersPage() {
           isOpen={true}
           onClose={() => setServerForRollback(null)}
           initialServer={serverForRollback}
+        />
+      )}
+
+      {/* Mod Manager Modal */}
+      {serverForMods && (
+        <ModManagerModal
+          serverName={serverForMods}
+          onClose={() => setServerForMods(null)}
         />
       )}
     </div>

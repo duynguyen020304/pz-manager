@@ -1,4 +1,4 @@
-import { ApiResponse, Server, Snapshot, ServerStats, BackupConfig, RestoreJob, ServerStatus, ServerJob, PZInstallation, ServerModsConfig, UserWithRole, Role } from '@/types';
+import { ApiResponse, Server, Snapshot, ServerStats, BackupConfig, RestoreJob, ServerStatus, ServerJob, PZInstallation, ServerModsConfig, ModEntry, UserWithRole, Role } from '@/types';
 
 const API_BASE = '/api';
 
@@ -185,6 +185,31 @@ export async function getInstallations(): Promise<PZInstallation[]> {
 // Mods
 export async function getServerMods(serverName: string): Promise<ServerModsConfig> {
   return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/mods`);
+}
+
+export async function getServerModEntries(serverName: string): Promise<ModEntry[]> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/mods?format=entries`);
+}
+
+export async function addMod(serverName: string, workshopUrl: string): Promise<ModEntry> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/mods`, {
+    method: 'POST',
+    body: JSON.stringify({ workshopUrl })
+  });
+}
+
+export async function updateModOrder(serverName: string, mods: ModEntry[]): Promise<{ message: string }> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/mods`, {
+    method: 'PUT',
+    body: JSON.stringify({ mods })
+  });
+}
+
+export async function removeMod(serverName: string, workshopId: string): Promise<{ message: string }> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/mods`, {
+    method: 'DELETE',
+    body: JSON.stringify({ workshopId })
+  });
 }
 
 // ============================================

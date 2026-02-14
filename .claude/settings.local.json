@@ -46,7 +46,8 @@
       "Bash(docker ps:*)",
       "Bash(tar:*)",
       "Bash(zstd:*)",
-      "Bash(/root/Steam/linux32/steamcmd:*)"
+      "Bash(/root/Steam/linux32/steamcmd:*)",
+      "Bash(git diff:*)"
     ]
   }
 }

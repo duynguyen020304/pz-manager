@@ -186,6 +186,32 @@ export interface ServerModsConfig {
   maps: string[];
 }
 
+// Mod management types
+export interface ModEntry {
+  workshopId: string;
+  modId: string;
+  name: string;
+  order: number;
+  isValid: boolean;
+  validationMessage?: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  message: string;
+  hasServerCode: boolean;
+  hasClientCode: boolean;
+  hasSharedCode: boolean;
+}
+
+export interface AddModRequest {
+  workshopUrl: string;
+}
+
+export interface UpdateModsRequest {
+  mods: ModEntry[];
+}
+
 // ============================================
 // USER MANAGEMENT TYPES
 // ============================================

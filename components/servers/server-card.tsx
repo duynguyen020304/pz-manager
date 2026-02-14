@@ -15,7 +15,8 @@ import {
   Terminal,
   RotateCcw,
   Trash2,
-  Loader2
+  Loader2,
+  Package
 } from 'lucide-react';
 
 interface ServerCardProps {
@@ -26,6 +27,7 @@ interface ServerCardProps {
   onStop: () => void;
   onConsole: () => void;
   onRollback: () => void;
+  onManageMods: () => void;
 }
 
 export function ServerCard({
@@ -35,7 +37,8 @@ export function ServerCard({
   onStart,
   onStop,
   onConsole,
-  onRollback
+  onRollback,
+  onManageMods
 }: ServerCardProps) {
   const { data: mods, isLoading: isLoadingMods } = useServerMods(server.name);
   
@@ -134,6 +137,17 @@ export function ServerCard({
         mods={mods ?? { serverName: server.name, mods: [], workshopItems: [], maps: ['Muldraugh, KY'] }} 
         isLoading={isLoadingMods} 
       />
+
+      {/* Manage Mods Button */}
+      <Button
+        onClick={onManageMods}
+        variant="secondary"
+        size="sm"
+        className="w-full mt-2"
+        leftIcon={<Package className="w-4 h-4" />}
+      >
+        Manage Mods
+      </Button>
 
       {/* Actions Grid - Responsive */}
       <div className="mt-3 pt-3 border-t border-border">
