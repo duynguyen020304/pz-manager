@@ -1,7 +1,8 @@
 import fs from 'fs/promises';
 import { BackupConfig, Schedule, CompressionConfig, IntegrityConfig, AutoRollbackConfig } from '@/types';
+import { BACKUP_CONFIG_PATH, SNAPSHOTS_PATH, BACKUP_SYSTEM_ROOT } from '@/lib/paths';
 
-const CONFIG_PATH = process.env.BACKUP_CONFIG_PATH || '/root/Zomboid/backup-system/config/backup-config.json';
+const CONFIG_PATH = BACKUP_CONFIG_PATH;
 
 let configCache: BackupConfig | null = null;
 let configCacheTime: number = 0;
@@ -124,8 +125,9 @@ export async function updateAutoRollback(updates: Partial<AutoRollbackConfig>): 
 }
 
 export function getSnapshotsPath(): string {
-  if (configCache) {
-    return configCache.snapshotsPath;
-  }
-  return '/root/Zomboid/backup-system/snapshots';
+  return SNAPSHOTS_PATH;
+}
+
+export function getBackupSystemRoot(): string {
+  return BACKUP_SYSTEM_ROOT;
 }

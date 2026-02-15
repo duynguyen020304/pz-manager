@@ -1,8 +1,10 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import fs from 'fs';
 import { ServerStatus, ServerJob, PZInstallation, ParserType } from '@/types';
 import { loadConfig } from './config-manager';
 import { LOG_PATHS } from './parsers';
+import { SERVER_CACHE_DIR } from './paths';
 
 const execAsync = promisify(exec);
 
@@ -364,11 +366,34 @@ async function executeStartJob(
     // Stage 3: Start the server (40%)
     job.progress = 40;
     job.message = 'Starting Project Zomboid server...';
-    
+
+    // Ensure server-specific cache directory exists
+    const cacheDir = SERVER_CACHE_DIR(serverName);
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+      console.log(`[ServerManager] Created cache directory: ${cacheDir}`);
+    }
+
+    // Validate cachedir has expected data (warn if missing)
+    const requiredFiles = [
+      `${cacheDir}/Server/${serverName}.ini`,
+      `${cacheDir}/db/${serverName}.db`
+    ];
+
+    const missingFiles = requiredFiles.filter(f => !fs.existsSync(f));
+    if (missingFiles.length > 0) {
+      console.warn(`[ServerManager] Warning: Missing expected files in cachedir:`);
+      missingFiles.forEach(f => console.warn(`  - ${f}`));
+      console.warn(`[ServerManager] Server may start with fresh data (no admin accounts, no player data).`);
+      console.warn(`[ServerManager] To migrate existing data, run: ./scripts/migrate-to-cachedir.sh`);
+      console.warn(`[ServerManager] For emergency recovery of already-running servers: /root/recover-cachedir-data.sh`);
+    }
+
     const startScript = `${installation.path}/start-server.sh`;
     const debugFlag = options?.debug ? ' -debug' : '';
-    const command = `${startScript} -servername ${serverName} -nosteam${debugFlag}`;
-    
+    const cachedirFlag = `-cachedir=${cacheDir}`;
+    const command = `${startScript} -servername ${serverName} ${cachedirFlag} -nosteam${debugFlag}`;
+
     // Send the command to tmux
     await execAsync(`tmux send-keys -t ${tmuxSession} "${command}" Enter`);
     
@@ -558,21 +583,26 @@ async function executeStopJob(jobId: string, serverName: string): Promise<void> 
     // Auto-stop log watching for this server
     try {
       const { unwatchLogFile } = await import('./log-watcher');
+      const { getLogPaths } = await import('./parsers');
+
+      // Get server-specific log paths
+      const logPaths = getLogPaths(serverName);
+
       // Unwatch all log files for this server
       const logFiles: Array<{ path: string; type: ParserType }> = [
-        { path: LOG_PATHS.pzUserLog, type: 'user' },
-        { path: LOG_PATHS.pzChatLog, type: 'chat' },
-        { path: LOG_PATHS.pzPerkLog, type: 'perk' },
-        { path: LOG_PATHS.pzPvpLog, type: 'pvp' },
-        { path: LOG_PATHS.pzAdminLog, type: 'admin' },
-        { path: LOG_PATHS.pzCmdLog, type: 'cmd' },
+        { path: logPaths.pzUserLog, type: 'user' },
+        { path: logPaths.pzChatLog, type: 'chat' },
+        { path: logPaths.pzPerkLog, type: 'perk' },
+        { path: logPaths.pzPvpLog, type: 'pvp' },
+        { path: logPaths.pzAdminLog, type: 'admin' },
+        { path: logPaths.pzCmdLog, type: 'cmd' },
       ];
       for (const { path: logPath, type } of logFiles) {
         unwatchLogFile(logPath, type);
       }
       // Unwatch server log
       const today = new Date().toISOString().split('T')[0];
-      const serverLogPath = LOG_PATHS.pzServerLog(today);
+      const serverLogPath = logPaths.pzServerLog(today);
       unwatchLogFile(serverLogPath, 'server');
       console.log(`[ServerManager] Auto-stopped log watching for ${serverName}`);
     } catch (watchError) {

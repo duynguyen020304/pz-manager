@@ -4,12 +4,13 @@ import fs from 'fs/promises';
 import { Snapshot, SnapshotManifest, ApiResponse } from '@/types';
 import { loadConfig } from '@/lib/config-manager';
 import { requireAuth } from '@/lib/auth';
-import { 
-  directoryExists, 
-  readJson, 
+import { SERVERS_PATH, SERVER_INI_PATH, SERVER_DB_PATH } from '@/lib/paths';
+import {
+  directoryExists,
+  readJson,
   listDirectories,
   formatSize,
-  formatTimestamp 
+  formatTimestamp
 } from '@/lib/file-utils';
 
 interface SnapshotWithMetadata extends Snapshot {
@@ -134,20 +135,19 @@ async function checkRestoreOptions(
   manifest: SnapshotManifest
 ): Promise<{ canRestore: boolean; serverExists: boolean; compatible: boolean; warnings: string[] }> {
   const warnings: string[] = [];
-  
-  const savesPath = '/root/Zomboid/Saves/Multiplayer';
-  const serverPath = path.join(savesPath, serverName);
+
+  const serverPath = path.join(SERVERS_PATH, serverName);
   const serverExists = await directoryExists(serverPath);
-  
-  const iniPath = `/root/Zomboid/Server/${serverName}.ini`;
+
+  const iniPath = SERVER_INI_PATH(serverName);
   const iniExists = await fs.access(iniPath).then(() => true).catch(() => false);
-  
+
   if (!iniExists) {
     warnings.push(`Server configuration file not found: ${serverName}.ini`);
   }
-  
+
   if (serverExists) {
-    const dbPath = `/root/Zomboid/db/${serverName}.db`;
+    const dbPath = SERVER_DB_PATH(serverName);
     const dbExists = await fs.access(dbPath).then(() => true).catch(() => false);
     if (dbExists) {
       warnings.push('Existing database will be overwritten');

@@ -3,8 +3,9 @@ import { detectAvailableServers } from '@/lib/file-utils';
 import { getServers } from '@/lib/config-manager';
 import { requireAuth } from '@/lib/auth';
 import { Server } from '@/types';
+import { SERVERS_PATH } from '@/lib/paths';
 
-const SAVES_PATH = '/root/Zomboid/Saves/Multiplayer';
+const SAVES_PATH = SERVERS_PATH;
 
 export async function GET(request: NextRequest) {
   try {

@@ -7,7 +7,9 @@
 export {
   BaseParser,
   LOG_PATHS,
-  PARSER_CONFIGS,
+  getLogPaths,
+  getParserConfigs,
+  getBackupSystemParserConfigs,
   parsePZTimestamp,
   parseBackupTimestamp,
   safeJsonParse,

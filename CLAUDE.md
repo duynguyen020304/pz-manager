@@ -4,754 +4,542 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Zomboid Web Manager** is a Next.js 16 web application providing a browser-based interface for managing Project Zomboid server backups, configurations, and server runtime (start/stop). It is part of a larger Zomboid server environment that includes:
+**Zomboid Web Manager** is a Next.js 16 web application providing a browser-based interface for managing Project Zomboid server backups, configurations, runtime (start/stop), and Steam Workshop mods.
 
-- **Backup System** - Bash-based automated backup with systemd timers (`/root/Zomboid/backup-system/`)
-- **Rollback CLI** - Node.js/React Ink terminal UI (`/root/Zomboid/rollback-cli/`)
-- **Zomboid Web Manager** - This Next.js web application
+**Deployment:**
+- **Development**: `/root/zomboid-web-manager/`
+- **Production**: `/opt/zomboid-web-manager/`
+- **Deploy**: `./scripts/deploy.sh` - Copies code, builds, restarts systemd service
+- **Setup**: `./setup.sh` - First-time installation with systemd service and Cloudflare Tunnel
 
-## Development Commands
+**Related Systems:**
+- **Backup System**: `/opt/zomboid-backups/` - Bash scripts with systemd timers (34GB of snapshots)
+- **Rollback CLI**: `/root/Zomboid/rollback-cli/` - Terminal UI for restores (archived)
+- **Server Cache**: `/root/server-cache/{serverName}/` - CACHEDIR isolation for all servers
+
+## Quick Start Commands
 
 ```bash
-# Navigate to project directory
-cd /root/Zomboid/zomboid-web-manager
-
-# Install dependencies
+# Development
+cd /root/zomboid-web-manager
 npm install
+npm run dev          # http://localhost:3001
+npm test             # Run tests (watch mode)
+npm run test:run     # Tests (CI mode)
+npm run test:ui      # Tests with UI
+npm run lint         # Run ESLint
 
-# Development mode (http://localhost:3001)
-npm run dev
+# Single test file
+npx vitest run __tests__/unit/lib/user-manager.test.ts
+npx vitest run --grep "pattern"  # Tests matching pattern
 
-# Production build
-npm run build
-
-# Production server (http://127.0.0.1:3000)
-npm start
-
-# Linting
-npm run lint
-
-# Testing
-npm test                  # Run tests in watch mode
-npm run test:run          # Run tests once
-npm run test:ui           # Run tests with UI
-npm run test:coverage     # Run tests with coverage
-
-# Database (TimescaleDB via Docker)
-npm run db:start          # Start database container
-npm run db:stop           # Stop database container
-npm run db:reset          # Reset database (deletes data)
-npm run db:migrate        # Run admin migration
-npm run db:seed           # Seed database with test data
-```
-
-### Production Deployment
-
-Use the included setup script for automated deployment:
-
-```bash
-./setup.sh
-```
-
-This script:
-1. Installs Node.js, npm, and cloudflared
-2. Generates bcrypt password hash
-3. Creates `.env.local` with secure SESSION_SECRET
-4. Builds production bundle
-5. Installs to `/opt/zomboid-web-manager/`
-6. Creates systemd service at `/etc/systemd/system/zomboid-web-manager.service`
-7. Guides Cloudflare Tunnel setup for HTTPS access
-
-### Systemd Service Commands
-
-```bash
-# Start/Stop/Restart
+# Production
 systemctl start zomboid-web-manager
-systemctl stop zomboid-web-manager
-systemctl restart zomboid-web-manager
-
-# Enable on boot
-systemctl enable zomboid-web-manager
-
-# View logs
+systemctl status zomboid-web-manager
 journalctl -u zomboid-web-manager -f
+
+# Database
+npm run db:start     # Start TimescaleDB container
+npm run db:stop      # Stop container
+npm run db:reset     # Reset database
 ```
 
-## Architecture Overview
+## Technology Stack
 
-### Technology Stack
-- **Next.js 16.1.6** with App Router (Server Components)
-- **React 19.2.3** - Latest React with Server/Client Components
+- **Next.js 16.1.6** with App Router
+- **React 19.2.3** - Server/Client Components
 - **TypeScript 5** - Full type safety
-- **Tailwind CSS 4** - Modern utility-first styling
-- **TanStack React Query 5** - Server state management with caching
-- **PostgreSQL with TimescaleDB** - Primary database for users, roles, sessions, audit logs
-- **bcryptjs** - Password hashing (10 salt rounds)
-- **Session-based auth** with HTTP-only cookies and database-backed sessions
-- **recharts** - Data visualization charts
-- **tmux** - Server session management for start/stop operations
-- **Vitest** - Unit testing with pg-mem for database mocking
+- **Tailwind CSS 4** - Utility-first styling
+- **TanStack React Query 5** - Server state management
+- **PostgreSQL with TimescaleDB** - Users, roles, sessions, audit logs, time-series data
+- **bcryptjs** - Password hashing (10 rounds)
+- **tmux** - Server session management
+- **steamcmd** - Workshop mod downloads
+- **@dnd-kit** - Drag-and-drop mod ordering UI
+- **Vitest** - Unit testing with pg-mem
+
+## Architecture
+
+### Key Patterns
+
+**Component Split:**
+- **Server Components** (default): API routes, data fetching
+- **Client Components** (`'use client'`): Interactive UI, forms
+- All `app/(authenticated)/` pages are client components using React Query hooks
+
+**Data Flow:**
+```
+Component → useQuery/useMutation → lib/api.ts → API route → lib/business-logic → File system/Scripts
+```
+
+**API Response Format:**
+```typescript
+{ success: boolean; data?: T; error?: string }
+```
+
+**Authentication:**
+- Session-based with HTTP-only cookies (24-hour expiry)
+- No middleware file - validation at API route level
+- `getUserByUsernameWithRole()` for authentication
 
 ### Directory Structure
 
 ```
 zomboid-web-manager/
-├── app/                              # Next.js App Router
-│   ├── api/                          # API Routes (Server-side)
-│   │   ├── auth/route.ts             # POST login, DELETE logout
-│   │   ├── servers/                  # Server management endpoints
-│   │   │   ├── route.ts              # GET list, POST add, DELETE remove
-│   │   │   ├── detect/route.ts       # Auto-detect servers
-│   │   │   ├── status/route.ts       # GET all server statuses
-│   │   │   └── [name]/
-│   │   │       ├── snapshots/route.ts # GET list, DELETE snapshot
-│   │   │       ├── stats/route.ts    # Server statistics
-│   │   │       ├── restore/route.ts  # Start restore
-│   │   │       ├── status/route.ts   # GET single server status
-│   │   │       ├── start/route.ts    # POST start server
-│   │   │       ├── stop/route.ts     # POST stop server
-│   │   │       ├── abort/route.ts    # POST abort server start
-│   │   │       ├── console/route.ts  # SSE console streaming
-│   │   │       └── mods/route.ts     # GET server mods
-│   │   ├── users/route.ts            # GET list, POST create user
-│   │   ├── users/[id]/route.ts       # GET, PATCH, DELETE user
-│   │   ├── roles/route.ts            # GET list, POST create role
-│   │   ├── roles/[id]/route.ts       # GET, PATCH, DELETE role
-│   │   ├── sessions/route.ts         # GET current session info
-│   │   ├── audit-logs/route.ts       # GET audit log entries
-│   │   ├── logs/route.ts             # GET unified log query
-│   │   ├── installations/route.ts    # GET PZ installations
-│   │   ├── snapshots/route.ts        # GET all snapshots (rich/paginated)
-│   │   ├── config/route.ts           # GET/PATCH/POST config
-│   │   └── jobs/[id]/route.ts        # Poll restore/job status
-│   ├── page.tsx                      # Login page
-│   ├── (authenticated)/              # Protected route group
-│   │   ├── dashboard/page.tsx        # Dashboard overview
-│   │   ├── servers/page.tsx          # Server management (with start/stop)
-│   │   ├── accounts/page.tsx         # User management (CRUD)
-│   │   ├── roles/page.tsx            # Role management (CRUD)
-│   │   ├── schedules/page.tsx        # Schedule management (full CRUD)
-│   │   ├── backups/page.tsx          # Backup browser (not in sidebar nav)
-│   │   ├── rollback/page.tsx         # 5-step restore wizard (not in sidebar nav)
-│   │   ├── settings/page.tsx         # Settings with tabs
-│   │   ├── logs/page.tsx             # Logs viewer (uses mock data)
-│   │   └── layout.tsx               # Layout for authenticated pages (includes sidebar)
-│   ├── layout.tsx                    # Root layout
-│   └── globals.css                   # Global styles
-├── components/
-│   ├── providers/                    # React Query, Sidebar providers
-│   ├── accounts/                     # User management components (table, modals)
-│   ├── roles/                        # Role management components (cards, permission matrix)
-│   ├── sidebar.tsx                   # Navigation sidebar
-│   ├── top-header.tsx                # Header component
-│   ├── ServerStatusBadge.tsx         # Status indicator component
-│   ├── ServerStartModal.tsx          # Start server options modal
-│   ├── StopConfirmModal.tsx          # Stop server confirmation
-│   ├── ConsoleModal.tsx              # Console viewing modal
-│   ├── ConsoleViewer.tsx             # Console log viewer
-│   └── ModList.tsx                   # Server mods display
-├── hooks/
-│   ├── use-api.ts                    # React Query hooks for server/backup APIs
-│   ├── use-api-users.ts              # React Query hooks for user/role APIs
-│   └── use-debounce.ts               # Debounce hook for search inputs
-├── lib/                              # Business logic
-│   ├── api.ts                        # API client functions
-│   ├── auth.ts                       # Authentication utilities
-│   ├── db.ts                         # PostgreSQL connection and query helpers
-│   ├── user-manager.ts               # User CRUD operations
-│   ├── role-manager.ts               # Role CRUD and permission checking
-│   ├── permission-constants.ts       # Shared permission definitions for UI
-│   ├── config-manager.ts             # Config file operations (5s cache)
-│   ├── console-manager.ts            # Console capture via tmux pipe-pane
-│   ├── file-utils.ts                 # File system utilities
-│   ├── mod-manager.ts                # Server mod configuration parsing
-│   ├── snapshot-manager.ts           # Backup operations, restore job tracking
-│   ├── server-manager.ts             # Server start/stop, status, job tracking
-│   ├── log-manager.ts                # Log ingestion and database operations
-│   ├── log-watcher.ts                # Real-time file watching for logs
-│   └── parsers/                      # Log file parsers
-│       ├── index.ts                  # Parser exports
-│       ├── base-parser.ts            # Base parser class and utilities
-│       ├── backup-log-parser.ts      # Backup/restore log parser
-│       ├── user-log-parser.ts        # Player event parser
-│       ├── chat-log-parser.ts        # Chat message parser
-│       ├── perk-log-parser.ts        # Skill snapshot parser
-│       ├── server-log-parser.ts      # Server event parser
-│       └── pvp-log-parser.ts         # PvP event parser
+├── app/                     # Next.js App Router (API routes + pages)
+├── components/               # React components (providers, UI)
+├── hooks/                    # React Query hooks (use-api.ts, use-api-users.ts)
+├── lib/                      # Business logic (server-manager, parsers, etc.)
 ├── scripts/
-│   ├── init-db.sql                   # Database schema and seed data
-│   ├── migrate-admin.js              # Admin user migration script
-│   └── migrations/                   # Database migration scripts
-│       └── add_logs_tables.sql       # Log tables schema
-├── __tests__/
-│   ├── setup/setup.ts                # Test setup (pg-mem or real DB)
-│   ├── setup/test-db.ts              # pg-mem test database factory
-│   ├── mocks/data.ts                 # Test mock data
-│   └── unit/lib/                     # Unit tests for lib modules
-├── types/index.ts                    # TypeScript definitions
-├── vitest.config.ts                  # Vitest configuration
-├── docker-compose.yml                # TimescaleDB container config
-└── tsconfig.json                     # @/* path alias maps to project root
+│   ├── backup/               # Bash backup scripts (paths-config.sh, backup.sh)
+│   ├── deploy.sh             # Production deployment
+│   └── setup.sh              # Initial setup
+├── __tests__/                # Vitest tests (pg-mem for unit tests)
+└── types/index.ts            # TypeScript definitions
 ```
 
-## Key Architecture Patterns
+## Centralized Path Management
 
-### Client/Server Component Split
+### TypeScript (`lib/paths.ts`)
 
-- **Server Components** (default): API routes, data fetching
-- **Client Components** (`'use client'` directive): Interactive UI, forms, stateful components
+All paths support environment variable override:
 
-All pages in `app/(authenticated)/` are client components that use React Query hooks for data fetching.
-
-### Authentication Flow
-
-1. **Login** (`/api/auth`, POST): User submits password → bcrypt verification → session cookie created
-2. **No middleware file**: Session validation is handled at the API route level
-3. **Session Storage**: HTTP-only cookies with SameSite strict, 24-hour expiry
-
-**Password Generation:**
-```bash
-node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('your-password', 10));"
-```
-
-### React Query Data Flow
-
-```
-Component → useQuery/useMutation hook → lib/api.ts → API route → lib/business-logic → File system/Scripts
-```
-
-All hooks are in `hooks/use-api.ts` and `hooks/use-api-users.ts`:
-
-**Server/Backup hooks** (`use-api.ts`):
-- `useServers()`, `useAddServer()`, `useRemoveServer()`, `useDetectServers()`
-- `useSnapshots(serverName, schedule?)`, `useDeleteSnapshot()`
-- `useAllSnapshots(server?, schedule?, dateFrom?, dateTo?)` - Rich snapshots with pagination
-- `useServerStats(serverName)`
-- `useRestore()`, `useRestoreJob(jobId)`
-- `useConfig()`, `useSaveConfig()`, `useUpdateSchedule()`, `useUpdateCompression()`, `useUpdateIntegrity()`, `useUpdateAutoRollback()`
-- `useServerStatus(serverName)`, `useAllServerStatus()` - 10-second polling
-- `useStartServer()`, `useStopServer()`, `useAbortServerStart()`
-- `useInstallations()`, `useServerMods(serverName)`
-- `useConsoleStream(serverName, enabled)` - SSE-based console streaming
-
-**User/Role hooks** (`use-api-users.ts`):
-- `useUsers(params?)`, `useUser(id)`, `useCreateUser()`, `useUpdateUser()`, `useDeleteUser()`
-- `useRoles()`, `useRole(id)`, `useCreateRole()`, `useUpdateRole()`, `useDeleteRole()`
-- `useCurrentUser()` - Returns logged-in user with role
-
-### API Response Format
-
-All API responses use consistent `ApiResponse<T>` type:
 ```typescript
-{
-  success: boolean;
-  data?: T;
-  error?: string;
-}
+// Base (legacy reference, rarely used)
+const ZOMBOID_BASE = process.env.ZOMBOID_PATH || '/root/Zomboid';
+
+// Backup system (independent location)
+const BACKUP_SYSTEM_BASE = process.env.BACKUP_SYSTEM_ROOT || '/opt/zomboid-backups';
+export const BACKUP_CONFIG_PATH = process.env.BACKUP_CONFIG_PATH ||
+  `${BACKUP_SYSTEM_BASE}/config/backup-config.json`;
+export const SNAPSHOTS_PATH = process.env.SNAPSHOTS_PATH ||
+  `${BACKUP_SYSTEM_BASE}/snapshots`;
+
+// Server cache directories (CACHEDIR isolation)
+export const SERVER_CACHE_BASE = process.env.SERVER_CACHE_BASE || '/root/server-cache';
+export const SERVER_CACHE_DIR = (serverName: string) =>
+  `${SERVER_CACHE_BASE}/${serverName}`;
+export const SERVER_LOGS_PATH = (serverName: string) =>
+  `${SERVER_CACHE_DIR(serverName)}/Logs`;
 ```
 
-## Database Layer (PostgreSQL/TimescaleDB)
+### Bash (`scripts/backup/paths-config.sh`)
 
-The application uses PostgreSQL with TimescaleDB for user management, sessions, and audit logging.
+```bash
+# Zomboid path (legacy reference)
+ZOMBOID_PATH="${ZOMBOID_PATH:-/root/Zomboid}"
 
-### Database Schema
+# Backup system (independent location)
+BACKUP_SYSTEM_ROOT="${BACKUP_SYSTEM_ROOT:-/opt/zomboid-backups}"
+CONFIG_DIR="${BACKUP_SYSTEM_ROOT}/config"
+SNAPSHOTS_DIR="${BACKUP_SYSTEM_ROOT}/snapshots"
+
+# Server cache (CACHEDIR isolation)
+SERVER_CACHE_BASE="${SERVER_CACHE_BASE:-/root/server-cache}"
+```
+
+## Database Schema
 
 | Table | Purpose |
 |-------|---------|
-| `roles` | RBAC role definitions with JSONB permissions |
-| `users` | User accounts with foreign key to roles |
-| `sessions` | Server-side session storage with tokens |
-| `audit_logs` | Time-series audit log (TimescaleDB hypertable) |
-| `backup_logs` | Backup/restore operation logs (TimescaleDB hypertable) |
-| `pz_player_events` | Player login/logout/death events |
-| `pz_server_events` | Server startup/shutdown/error events |
-| `pz_skill_snapshots` | Player skill progression from PerkLog.txt |
-| `pz_chat_messages` | In-game chat history |
+| `roles` | RBAC with JSONB permissions |
+| `users` | User accounts (bcrypt passwords) |
+| `sessions` | Server-side session storage |
+| `audit_logs` | Audit trail (TimescaleDB hypertable) |
+| `backup_logs` | Backup/restore operations (TimescaleDB) |
+| `pz_player_events` | Player login/logout/death |
+| `pz_server_events` | Server startup/shutdown/errors |
+| `pz_skill_snapshots` | Player skill progression |
+| `pz_chat_messages` | In-game chat |
 | `pz_pvp_events` | PvP combat events |
-| `log_file_positions` | File read positions for incremental log parsing |
+| `log_file_positions` | File read positions for incremental parsing |
+| `system_metrics` | Performance metrics (TimescaleDB hypertable) |
+| `system_spikes` | Detected spike events (TimescaleDB hypertable) |
+| `monitor_config` | Monitoring settings (single row) |
 
-### Database Manager (lib/db.ts)
+**Database Manager** (`lib/db.ts`):
+- `query<T>(sql, params)` - Auto-release client
+- `queryOne<T>(sql, params)` - First row or null
+- `transaction(callback)` - Auto commit/rollback
+- Test mode: Uses pg-mem when `NODE_ENV=test` and `USE_REAL_DATABASE != true`
 
-Query helpers with automatic test mode detection:
-- `query<T>(sql, params)` - Execute query with auto client release
-- `queryOne<T>(sql, params)` - Returns first row or null
-- `transaction(callback)` - Execute with auto commit/rollback
-- `checkConnection()` - Health check
+**User Management** (`lib/user-manager.ts`):
+- CRUD operations with bcrypt password hashing
+- Prevents deleting last superadmin
+- Paginated list with filters
 
-**Test Mode:** When `NODE_ENV=test` and `USE_REAL_DATABASE != true`, uses pg-mem in-memory database. For integration tests, set `USE_REAL_DATABASE=true`.
+**Role Management** (`lib/role-manager.ts`):
+- `hasPermission(role, resource, action)` - Superadmin has all
+- Custom roles with JSONB permissions
+- System roles (superadmin, admin, operator, viewer) protected
 
-### User Management (lib/user-manager.ts)
-
-CRUD operations for users:
-- `createUser(input)` - Hashes password with bcrypt, validates uniqueness
-- `updateUser(id, input)` - Partial updates, password hashing if provided
-- `deleteUser(id)` - Prevents deletion of last superadmin
-- `listUsers({ page, limit, roleId, isActive, search })` - Paginated with filters
-- `getUserByUsernameWithRole(username)` - For authentication
-
-### Role Management (lib/role-manager.ts)
-
-RBAC with permission checking:
-- `hasPermission(role, resource, action)` - Superadmin has all, wildcard support
-- `createRole(input)` - Custom roles with JSONB permissions
-- `updateRole(id, input)` - Cannot rename system roles
-- `deleteRole(id)` - Cannot delete system roles, nulls user role_ids
-
-**Default Roles:** superadmin, admin, operator, viewer (system roles, cannot be deleted)
-
-### Permission Constants (`lib/permission-constants.ts`)
-
-Shared constants for permission matrix UI and validation:
-- `PERMISSION_RESOURCES` - List of resources with display labels (servers, backups, schedules, settings, logs, users, roles)
-- `PERMISSION_ACTIONS` - List of actions (view, create, edit, delete, start, stop, configure, restore)
-- `RESOURCE_ACTIONS` - Maps resources to their applicable actions
-- `PERMISSION_PRESETS` - Quick-select presets (readOnly, operator, admin)
-- Helper functions: `getResourceLabel()`, `getActionLabel()`, `isEmptyPermissions()`, `countPermissions()`
-
-### Permission Format
-
-Permissions stored as JSONB: `{ "resource": ["action1", "action2"] }`
-
-Example:
+**Permission Format:**
 ```json
-{
-  "servers": ["view", "start", "stop"],
-  "backups": ["view", "restore"],
-  "logs": ["view"]
-}
+{ "servers": ["view", "start", "stop"], "backups": ["view", "restore"] }
 ```
-
 Wildcard: `{ "*": ["*"] }` grants all permissions.
 
-### Audit Logging
+## Per-Server Isolation (CACHEDIR)
 
-Audit logs use TimescaleDB hypertable with 1-day chunks:
-- `time` - Timestamp (primary partition key)
-- `user_id`, `username` - Actor identification
-- `action` - Action type (e.g., "user.login", "server.start")
-- `resource_type`, `resource_id` - Target resource
-- `details` - JSONB for additional context
-- `ip_address` - Client IP
+**Status**: ✅ **All servers migrated to CACHEDIR isolation** (as of 2026-02-15)
+
+**Previous Problem**: All servers wrote to `/root/Zomboid/Logs/`, making log attribution impossible. Backup system was backing up stale data from legacy paths.
+
+**Solution**: Use `-cachedir` parameter to isolate each server's data. All servers now use CACHEDIR by default.
+
+### How It Works
+
+**Startup Command:**
+```bash
+/opt/pzserver/start-server.sh -servername {serverName} \
+  -cachedir=/root/server-cache/{serverName} -nosteam
+```
+
+**Directory Structure:**
+```
+/root/server-cache/{serverName}/
+├── Logs/           # Server-specific logs (isolated!)
+├── Saves/          # World saves
+├── Server/         # Server configs
+├── db/             # Player databases
+├── Mods/           # Mod installations
+└── steamapps/      # Workshop downloads
+```
+
+**Migrated Servers**:
+- ✅ `servertest` - 83MB (5,535 world files)
+- ✅ `duypzserver` - 982MB (206,716 world files)
+
+**Legacy Data**: Archived to `/root/Zomboid-archive/` (35GB) - can be deleted after verification period
+
+### Implementation
+
+**lib/paths.ts**: `SERVER_CACHE_DIR(serverName)`, `SERVER_LOGS_PATH(serverName)` - CACHEDIR only, no legacy fallback
+**lib/server-manager.ts**: Creates cache dir, adds `-cachedir` to startup
+**lib/parsers/base-parser.ts**: `getLogPaths(serverName)` for server-specific paths, `getParserConfigs(serverName)` for parsers
+**lib/log-watcher.ts**: Uses `getLogPaths(serverName)` per server, `getBackupSystemParserConfigs()` for global logs
+
+**Benefits**:
+1. Complete log isolation per server
+2. Accurate log attribution in database
+3. Backups now target current data (not stale)
+4. Independent mod/workshop installations
+5. Clean separation for debugging
 
 ## Log Management System
 
-The application includes a comprehensive log parsing and ingestion system for both backup system logs and Project Zomboid game server logs.
+### Parsers (`lib/parsers/`)
 
-### Log Parsers (`lib/parsers/`)
+Each extends `BaseParser`:
 
-Each parser extends `BaseParser` and handles a specific log format:
+| Parser | Source | Output |
+|--------|--------|--------|
+| `BackupLogParser` | backup.log, restore.log | BackupLogEntry |
+| `UserLogParser` | user.txt | PZPlayerEvent |
+| `ChatLogParser` | chat.txt | PZChatMessage |
+| `PerkLogParser` | PerkLog.txt | PZSkillSnapshot |
+| `ServerLogParser` | {date}/server.txt | PZServerEvent |
+| `PVPLogParser` | pvp.txt | PZPVPEvent |
 
-| Parser | Source File | Output Type |
-|--------|-------------|-------------|
-| `BackupLogParser` | `backup.log`, `restore.log` | `BackupLogEntry` |
-| `UserLogParser` | `user.txt` | `PZPlayerEvent` |
-| `ChatLogParser` | `chat.txt` | `PZChatMessage` |
-| `PerkLogParser` | `PerkLog.txt` | `PZSkillSnapshot` |
-| `ServerLogParser` | `$(date)/server.txt` | `PZServerEvent` |
-| `PVPLogParser` | `pvp.txt` | `PZPVPEvent` |
-
-**Log Paths** (defined in `lib/parsers/base-parser.ts`):
-```typescript
-LOG_PATHS = {
-  backupLog: '/root/Zomboid/backup-system/logs/backup.log',
-  restoreLog: '/root/Zomboid/backup-system/logs/restore.log',
-  rollbackLog: '/root/Zomboid/backup-system/logs/rollback-cli.log',
-  pzUserLog: '/root/Zomboid/Logs/user.txt',
-  pzChatLog: '/root/Zomboid/Logs/chat.txt',
-  pzPerkLog: '/root/Zomboid/Logs/PerkLog.txt',
-  pzPvpLog: '/root/Zomboid/Logs/pvp.txt',
-  pzServerLog: (date) => `/root/Zomboid/Logs/${date}/server.txt`,
-}
-```
+**Path Resolution** (`lib/parsers/base-parser.ts`):
+- Server-specific: `getLogPaths(serverName)` function (using CACHEDIR)
+- Backup system logs: `getBackupSystemParserConfigs()` for global backup/restore logs
+- Parser configs: `getParserConfigs(serverName)` - always requires serverName
 
 ### Log Manager (`lib/log-manager.ts`)
 
-Handles database operations and file position tracking:
-- `parseAndIngestFile(filePath, parserType, serverName)` - Parse and insert new log entries
-- `getUnifiedLogs(filters)` - Query logs from any source with unified format
-- `getBackupLogs()`, `getPlayerEvents()`, `getChatMessages()`, etc. - Source-specific queries
-- `getFilePosition()` / `updateFilePosition()` - Track file read positions for incremental parsing
+- `parseAndIngestFile(filePath, parserType, serverName)` - Parse and insert
+- `getUnifiedLogs(filters)` - Query logs from any source
+- `getFilePosition()` / `updateFilePosition()` - Track for incremental parsing
 
 ### Log Watcher (`lib/log-watcher.ts`)
 
-Real-time file monitoring using Node.js `fs.watch`:
-- `watchLogFile(filePath, parserType, serverName)` - Watch a single file
-- `startWatchingAll(servers)` - Watch all log files for specified servers
-- `startWatchingRunning()` - Auto-detect and watch running servers only
-- Debounced ingestion (1s delay) to batch file changes
-- Automatic log rotation detection (when file shrinks or is renamed)
+- `watchLogFile(filePath, parserType, serverName)` - Watch single file
+- `startWatchingAll(servers)` - Watch all servers (uses `getLogPaths(serverName)`)
+- `startWatchingRunning()` - Auto-detect running servers
+- Debounced ingestion (1s delay), handles log rotation
 
-### Unified Logs API (`/api/logs`)
+## Server Management (`lib/server-manager.ts`)
 
-Query parameters:
-- `source` - Log source: `backup`, `player`, `server`, `chat`, `pvp`
-- `server` - Filter by server name
-- `eventType` - Filter by event type
-- `username` - Filter by username (supports partial match)
-- `level` - Filter by log level (INFO, WARN, ERROR)
-- `from`, `to` - Date range filters (ISO8601)
-- `limit`, `offset` - Pagination
+**Status Detection** (5-second TTL cache):
+- tmux session: `pz-{serverName}`
+- Process PID: `pgrep -f "ProjectZomboid64.*-servername {serverName}"`
+- Port binding: `ss -ulnp`
+- States: `stopped`, `starting`, `running`, `stopping`
 
-### Database Migration
+**Port Calculation**:
+- Default (16261/16262/27015) if available
+- Index-based: Server at index 1 → 16271/16272/27025
 
-Run `scripts/migrations/add_logs_tables.sql` to create log tables:
-```bash
-psql -d zomboid_manager -f scripts/migrations/add_logs_tables.sql
-```
+**Starting a Server**:
+1. Create cache directory: `{SERVER_CACHE_BASE}/{serverName}`
+2. Create detached tmux session: `tmux new-session -d -s pz-{serverName}`
+3. Send start command with `-cachedir={cacheDir}`
+4. Wait up to 1 hour for process spawn and port binding
+5. Return jobId for progress tracking (can be aborted)
 
-## Testing
+**Stopping a Server**:
+1. Send `save` command (5 second wait)
+2. Send `quit` command
+3. Wait up to 15 seconds for graceful shutdown
+4. Fallback to SIGTERM if needed
+5. Kill tmux session
 
-Tests use Vitest with jsdom environment. Database tests can use either pg-mem (unit) or real TimescaleDB (integration).
+**Job Tracking**: In-memory Map, job ID format: `{start|stop}-{timestamp}-{random}`
 
-### Test Structure
+## Console Manager (`lib/console-manager.ts`)
 
-```
-__tests__/
-├── setup/
-│   ├── setup.ts              # Global setup, chooses pg-mem or real DB
-│   └── test-db.ts            # pg-mem factory with schema bootstrapping
-├── mocks/
-│   └── data.ts               # Test fixtures (roles, users)
-└── unit/lib/
-    ├── role-manager.test.ts  # Role CRUD and permission tests
-    └── user-manager.test.ts  # User CRUD tests
-```
-
-### Running Tests
-
-```bash
-# Unit tests (pg-mem, fast)
-npm test
-
-# Single run (CI mode)
-npm run test:run
-
-# Run a single test file
-npx vitest run __tests__/unit/lib/user-manager.test.ts
-
-# Run tests matching a pattern
-npx vitest run --grep "user manager"
-
-# Integration tests (requires running TimescaleDB)
-USE_REAL_DATABASE=true npm test
-```
-
-### Test Database Setup
-
-Unit tests use pg-mem with in-memory PostgreSQL emulation. The test setup:
-1. Creates pg-mem database instance
-2. Runs init-db.sql schema
-3. Seeds default roles
-4. Stores in globalThis for access by lib/db.ts
-
-## Server Management (lib/server-manager.ts)
-
-This library manages Project Zomboid server runtime operations using tmux sessions.
-
-### Server Status Detection
-
-Servers are detected by:
-1. **tmux session**: Named `pz-{serverName}` - indicates session exists
-2. **Process PID**: Found via `pgrep -f "ProjectZomboid64.*-servername {serverName}"`
-3. **Port binding**: Checks if ports are bound via `ss -ulnp`
-
-**Status states**: `stopped` | `starting` | `running` | `stopping`
-
-**Status caching**: 5-second TTL to reduce system calls
-
-### Port Calculation
-
-Ports use smart calculation:
-- First tries default ports (16261/16262/27015) if available
-- Falls back to index-based calculation (+10 per server index)
-- Example: Server at index 1 → 16271/16272/27025
-
-### Starting a Server
-
-The `startServer()` function:
-1. Creates a detached tmux session: `tmux new-session -d -s pz-{serverName}`
-2. Sends start command: `{installation.path}/start-server.sh -servername {name} -nosteam`
-3. Waits up to 1 hour (3600s) for process to spawn
-4. Verifies port binding (up to 1 hour)
-5. Returns jobId for progress tracking
-6. Can be aborted via `/api/servers/[name]/abort` before completion
-
-**Start options**:
-- `debug?: boolean` - Adds `-debug` flag
-- `installationId?: string` - Select PZ installation (future feature)
-
-### Stopping a Server
-
-The `stopServer()` function:
-1. Sends `save` command to tmux session (allows 5 seconds)
-2. Sends `quit` command to tmux session
-3. Waits up to 15 seconds for graceful shutdown
-4. Falls back to SIGTERM if still running
-5. Kills tmux session
-
-### Job Tracking
-
-Server start/stop operations use job system:
-- In-memory Map store (lost on restart)
-- Job ID format: `{start|stop}-{timestamp}-{random}`
-- Progress stages: 10% → 20% → ... → 100%
-- Status: `pending` | `running` | `completed` | `failed`
-
-The `/api/jobs/[id]` endpoint returns either `RestoreJob` or `ServerJob` type.
-
-## Console Manager (lib/console-manager.ts)
-
-This library manages live server console output streaming using tmux pipe-pane:
-
-**Console Capture:**
-- Uses `tmux pipe-pane` to capture console output to `/tmp/pz-console-{server}.log`
-- Reference counting for multiple clients - capture only stops when last client disconnects
-- Initial buffer capture (100 lines) on first connect via `tmux capture-pane`
+**Console Capture** via tmux pipe-pane:
+- Output to `/tmp/pz-console-{server}.log`
+- Reference counting for multiple clients
+- Initial buffer capture (100 lines) on first connect
 - Auto-cleanup after 1 minute of no clients
-- Active capture state tracking via in-memory Map
 
-**Console State:**
-- `startConsoleCapture(serverName)` - Starts capture, returns log path
-- `stopConsoleCapture(serverName)` - Decrements client count, stops when 0
-- `getConsoleSnapshot(serverName, lines)` - Gets N lines from tmux buffer
-- `isCapturing(serverName)` - Check if currently capturing
-
-**SSE Streaming:**
-- `/api/servers/[name]/console/route.ts` provides Server-Sent Events stream
-- Uses `tail -f` to follow log file changes
+**SSE Streaming**: `/api/servers/[name]/console/route.ts`
 - Event types: `connected`, `init`, `log`, `error`
-- Auto-reconnect handling in client hooks
+- Uses `tail -f` for file updates
 - File position tracking for incremental updates
 
-## Mod Manager (lib/mod-manager.ts)
+## Mod Management (`lib/mod-manager.ts`)
 
-Parses server INI files to extract mod configuration:
+**Steam Workshop Integration:**
+- `fetchModTitleFromWorkshop(workshopId)` - Scrapes Steam Workshop for mod title
+- `downloadMod(serverName, workshopId)` - Uses steamcmd to download workshop items
+- Steam App ID: 108600
+- Workshop items stored at `{SERVER_CACHE_DIR}/steamapps/workshop/content/108600/{workshopId}/` (per-server CACHEDIR)
 
-**Functions:**
-- `getServerMods(serverName)` - Returns full mod configuration
-- `getServerModSummary(serverName)` - Returns counts only
+**Server INI Management** (`{SERVER_CACHE_DIR}/Server/{serverName}.ini`):
+- `getServerMods(serverName)` - Parses Mods=, WorkshopItems=, Map= lines
+- `addModToServer()` - Adds workshopId=name to WorkshopItems, modId to Mods
+- `updateModOrder()` - Reorders Mods= line (drag-and-drop UI via @dnd-kit)
+- `removeModFromServer()` - Removes from both WorkshopItems and Mods
 
-**Parsed Data:**
-- `mods[]`: Array of local mod names (comma-separated in INI)
-- `workshopItems[]`: Array of `{workshopId, name}` objects (semicolon-separated, format: `id=name`)
-- `maps[]`: Array of map names (comma-separated, defaults to `Muldraugh, KY`)
+**Mod Validation:**
+- `validateMod(modPath)` - Checks for server/client/shared Lua code
+- `extractModId(modPath)` - Reads from mod.info or infers from directory
+- `extractModName(modPath, workshopId?)` - Fetches from Workshop (primary) or local file
 
-**INI Location:** `/root/Zomboid/Server/{servername}.ini`
+**Drag-and-Drop UI:**
+- Uses `@dnd-kit/core` and `@dnd-kit/sortable`
+- Client components in `/components/servers/`
+- API routes: `/api/servers/[name]/mods`
 
-## Snapshot API (app/api/snapshots/route.ts)
+## System Monitoring (`lib/system-monitor.ts`)
 
-Rich snapshots endpoint with advanced filtering and metadata:
+**SystemMonitor Service** (singleton):
+- Always-on monitoring when enabled in config
+- Configurable polling interval (default: 5s)
+- Smart spike detection optimized for PZ game engine
+- Auto-cleanup based on retention settings
+- Starts in authenticated layout
 
-**Query Parameters:**
-- `server?: string` - Filter by server name
-- `schedule?: string` - Filter by schedule type
-- `dateFrom?: ISO8601` - Filter snapshots after date
-- `dateTo?: ISO8601` - Filter snapshots before date
-- `offset?: number` - Pagination offset (default: 0)
-- `limit?: number` - Results per page (default: 50)
+**Spike Detection** (`lib/spike-detector.ts`):
+- CPU/Memory/Swap: Critical threshold (absolute) + relative spike
+- Network: Relative spike only
+- Sustained detection avoids false positives (2 samples for critical, 15s for warning)
 
-**Response includes:**
-- Snapshots with metadata: status, integrity, compression stats, restore options, age
-- Pagination info: total, offset, limit, hasMore
-- Summary: total size, average size, compression ratio
-- Applied filters
+**Monitor Configuration** (database, `lib/monitor-manager.ts`):
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `enabled` | true | Enable/disable monitoring |
+| `pollingIntervalSeconds` | 5 | Sample frequency |
+| `retentionHours` | 24 | Metric data retention |
+| `cpuCriticalThreshold` | 90 | Absolute CPU % for critical |
+| `cpuSpikeThresholdPercent` | 50 | Relative CPU spike % |
+| `cpuSpikeSustainedSeconds` | 15 | Seconds above threshold |
+| (Similar for memory, swap, network) | | |
 
-## External System Integration
+## Key API Endpoints
 
-### File System Paths
+**Servers:**
+- `GET/POST /api/servers` - List/add servers
+- `DELETE /api/servers?name=` - Remove server
+- `GET /api/servers/detect` - Auto-detect
+- `GET /api/servers/status` - All statuses
+- `POST /api/servers/[name]/start` - Start server
+- `POST /api/servers/[name]/stop` - Stop server
+- `GET /api/servers/[name]/console` - SSE console stream
+- `GET /api/servers/[name]/mods` - Get server mods
+- `POST /api/servers/[name]/mods` - Add mod (workshop URL or ID)
+- `PATCH /api/servers/[name]/mods/order` - Update mod load order
+- `DELETE /api/servers/[name]/mods` - Remove mod
 
-| Purpose | Path |
-|---------|------|
-| Backup config | `/root/Zomboid/backup-system/config/backup-config.json` |
-| Snapshots | `/root/Zomboid/backup-system/snapshots/` |
-| Server saves | `/root/Zomboid/Saves/Multiplayer/` |
-| Restore script | `/root/Zomboid/backup-system/bin/restore.sh` |
-| Backup script | `/root/Zomboid/backup-system/bin/backup.sh` |
-| Server INI configs | `/root/Zomboid/Server/{servername}.ini` |
-| Server databases | `/root/Zomboid/db/{servername}.db` |
-| PZ Installation | `/opt/pzserver/` (default) |
-| Console logs | `/tmp/pz-console-{servername}.log` |
+**Backups:**
+- `GET /api/servers/[name]/snapshots?schedule=` - List snapshots
+- `POST /api/servers/[name]/restore` - Start restore
+- `GET /api/snapshots` - Rich snapshots (server, schedule, date range, pagination)
 
-### Server Validation Criteria
+**Users & Roles:**
+- `GET /api/users?page&limit&roleId&isActive&search` - List users
+- `POST /api/users` - Create user
+- `GET/PATCH/DELETE /api/users/[id]` - Manage user
+- `GET /api/roles` - List all roles
+- `POST /api/roles` - Create custom role
+- `GET/PATCH/DELETE /api/roles/[id]` - Manage role (system roles protected)
 
-Servers are validated by checking required files/directories:
-- **Required**: `map_meta.bin`, `map/`, `chunkdata/`
-- **Optional detection**: `.ini` config files, `.db` database files
+**Logs:**
+- `GET /api/logs?source&server&eventType&username&level&from&to&limit&offset` - Unified query
 
-### Backup Config Schema
+**Metrics & Monitoring:**
+- `GET /api/metrics?type=current` - Current metrics
+- `GET /api/metrics/history?hours&interval` - Time series data
+- `GET /api/metrics/spikes?hours&limit` - Spike events
+- `GET /api/metrics/status` - Monitor service status
 
-The config contains (see `types/index.ts`):
-- `schedules[]`: Array of schedule objects with name, interval (cron), enabled, retention
-- `servers[]`: Array of server name strings
-- `compression`: { enabled, algorithm, level, extension }
-- `integrity`: { enabled, algorithm, verifyAfterBackup, verifyAfterRestore }
-- `notifications`: { enabled, onSuccess, onFailure, onLowDisk, diskThreshold }
-- `performance`: { parallelBackup, maxParallelJobs, nice, ionice }
-- `autoRollback`: { enabled, schedule, cooldownMinutes, notifyPlayers }
+## Pages & Navigation
 
-## API Endpoints
+**Sidebar:**
+- `/dashboard` - Overview with server status, quick actions
+- `/servers` - Server management (start/stop controls, auto-detect)
+- `/monitor` - System performance monitoring
+- `/schedules` - Backup schedule CRUD
+- `/logs` - Unified log viewer with filtering
+- `/accounts` - User CRUD
+- `/roles` - Role CRUD with permission matrix
+- `/settings` - Tabs: Schedules, Servers, Settings
 
-### Users
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/users` | List users (supports `?page&limit&roleId&isActive&search`) |
-| POST | `/api/users` | Create user |
-| GET | `/api/users/[id]` | Get user by ID |
-| PATCH | `/api/users/[id]` | Update user |
-| DELETE | `/api/users/[id]` | Delete user |
-
-### Roles
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/roles` | List all roles |
-| POST | `/api/roles` | Create custom role |
-| GET | `/api/roles/[id]` | Get role by ID |
-| PATCH | `/api/roles/[id]` | Update role (cannot rename system roles) |
-| DELETE | `/api/roles/[id]` | Delete role (system roles protected) |
-
-### Sessions
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/sessions` | Get current session/user info |
-
-### Audit Logs
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/audit-logs` | List audit entries (supports `?userId&action&resourceType&from&to`) |
-
-### Logs
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/logs` | Unified log query (supports `?source&server&eventType&username&level&from&to&limit&offset`) |
-
-## Pages and Navigation
-
-### Sidebar Navigation
-
-The sidebar navigation (`components/sidebar.tsx`) includes:
-- **Dashboard** (`/dashboard`) - Overview with server status, quick actions
-- **Servers** (`/servers`) - Server detection, validation, add/remove, **start/stop controls**
-- **Accounts** (`/accounts`) - User management with CRUD operations
-- **Roles** (`/roles`) - Role management with CRUD operations
-- **Schedules** (`/schedules`) - Full CRUD for backup schedules
-- **Logs** (`/logs`) - Unified log viewer with filtering by source, server, event type
-- **Settings** (`/settings`) - Tabbed interface (Schedules/Servers/Settings)
-
-### Pages Not in Sidebar Navigation
-
-- **Backups** (`/backups`) - Backup browser with filtering
-- **Rollback** (`/rollback`) - 5-step restore wizard
-
-### Page Details
-
-**Dashboard** (`/dashboard`):
-- Stats row: Total Servers, Running Servers, Active Schedules, Storage Used, Retention Count
-- Server table with status indicators and last/next backup times
-- Running servers count via `useAllServerStatus()`
-- Quick action buttons
-
-**Servers Page** (`/servers`):
-- Server cards with status badges
-- Start/Stop buttons (disabled during starting/stopping)
-- Displays PID, uptime, ports when running
-- Auto-detect and manual server add
-- Console button (opens modal with live console stream)
-
-**Schedules Page** (`/schedules`):
-- Full CRUD operations for schedules
-- Add new schedule with custom name, interval, retention
-- Delete existing schedules
-- Toggle enable/disable schedules
-
-**Settings Page** (`/settings`):
-- **Schedules Tab**: Quick toggle and retention adjustment
-- **Servers Tab**: View configured servers
-- **Settings Tab**: Compression toggle/level, integrity verification toggles
-
-**Accounts Page** (`/accounts`):
-- User table with username, email, role, status, last login
-- Create user modal with role selection
-- Edit user modal with password change option
-- Delete user with confirmation (prevents deleting last superadmin)
-
-**Roles Page** (`/roles`):
-- Role cards showing permissions by resource
-- Create custom roles with permission matrix
-- Edit role permissions (cannot rename system roles)
-- Delete custom roles (system roles protected)
+**Not in Sidebar:**
+- `/backups` - Backup browser with filtering
+- `/rollback` - 5-step restore wizard
 
 ## Important Implementation Notes
 
-### Path Alias Resolution
+**Path Alias**: `@/*` maps to project root (tsconfig.json)
 
-The `@/*` alias maps to project root (`tsconfig.json`):
-```typescript
-import { Server } from '@/types';
-import { api } from '@/lib/api';
+**Config Manager**: 5-second TTL cache to avoid excessive file I/O
+
+**Route Groups**: `(authenticated)` folder creates protected route group with shared layout
+
+**Rollback Wizard Flow**:
+1. Select Server (dropdown with badges)
+2. Select Backup (filterable list with tabs)
+3. Preview (snapshot details + warnings)
+4. Confirm (type server name to prevent accidents)
+5. Progress (3-second polling)
+
+**Error Handling**:
+- API routes: Try/catch with structured responses
+- Client hooks: React Query error state
+- File ops: Graceful null returns for missing files
+
+## Testing
+
+**Framework**: Vitest with jsdom (single-threaded mode)
+
+**Test Database** (`__tests__/setup/test-db.ts`):
+- Uses `pg-mem` for in-memory PostgreSQL
+- Full schema mirroring production database
+- Custom `gen_random_uuid()` function registration
+- Auto-seeds system roles (superadmin, admin, operator, viewer)
+
+**Usage**:
+```bash
+npx vitest run __tests__/unit/lib/user-manager.test.ts  # Single file
+npx vitest run --grep "pattern"  # Tests matching pattern
 ```
 
-### Config Manager Caching
+**Important**:
+- Set `USE_REAL_DATABASE=true` to use real database in tests
+- `lib/db.ts` checks `NODE_ENV=test` to use pg-mem adapter
+- Always reset test state in `beforeEach` hooks
 
-`lib/config-manager.ts` uses a 5-second (5000ms) TTL cache for config reads to avoid excessive file I/O.
+## Code Style Guidelines
 
-### Route Groups
+**TypeScript**:
+- Strict mode enabled - always define explicit types
+- Path alias: `@/` for all imports (configured in tsconfig.json)
+- Avoid `any`; use `unknown` with type guards
+- Prefix unused variables with `_` to ignore
 
-The `(authenticated)` folder creates a route group that doesn't appear in URLs but allows for shared layouts and organization.
+**Import Order**:
+1. External dependencies (`@tanstack/react-query`, `lucide-react`)
+2. Next.js built-ins (`next/server`, `next/navigation`)
+3. Internal types (`@/types`)
+4. Internal components/hooks/lib (`@/components`, `@/hooks`, `@/lib`)
 
-### Rollback Wizard Flow
+**Naming Conventions**:
+| Type | Convention | Example |
+|------|------------|---------|
+| Files | kebab-case | `mod-manager.ts` |
+| Components | PascalCase | `ServerCard` |
+| Functions | camelCase | `getServerMods` |
+| Types/Interfaces | PascalCase | `ServerModsConfig` |
+| Constants | UPPER_SNAKE | `STEAM_APP_ID` |
+| Hooks | camelCase + 'use' prefix | `useServers` |
 
-5-step process (`app/(authenticated)/rollback/page.tsx`):
-1. Select Server - Dropdown with validation badges
-2. Select Backup - Filterable list with schedule tabs
-3. Preview - Shows snapshot details and warnings
-4. Confirm - Type server name to confirm (prevents accidents)
-5. Progress - Real-time progress monitoring with 3-second polling
-
-### Error Handling Patterns
-
-- **API routes**: Try/catch with structured error responses
-- **Client hooks**: React Query error handling via mutation error state
-- **File operations**: Graceful null returns for missing files
+**React Components**:
+- Functional components with hooks only
+- Add `'use client'` directive for client components
+- Destructure props, define interfaces before component
+- Use TanStack Query for server state (prefetch in Server Components, `useQuery` in Client Components)
 
 ## Environment Configuration
 
-Required `.env.local` variables:
-
+**Required .env.local variables:**
 ```bash
-# Database (required for user management)
-DATABASE_URL=postgresql://zomboid_admin:password@localhost:5432/zomboid_manager
+DATABASE_URL=postgresql://user:pass@localhost:5432/zomboid_manager
+SESSION_SECRET=random_secret_key
+```
 
-# Authentication
-SESSION_SECRET=random_secret_key    # Random secret for session signing
-
-# Zomboid paths
+**Optional (all have defaults):**
+```bash
 ZOMBOID_PATH=/root/Zomboid
-BACKUP_CONFIG_PATH=/root/Zomboid/backup-system/config/backup-config.json
-SNAPSHOTS_PATH=/root/Zomboid/backup-system/snapshots
-
+BACKUP_SYSTEM_ROOT=/opt/zomboid-backups
+BACKUP_CONFIG_PATH=/opt/zomboid-backups/config/backup-config.json
+SNAPSHOTS_PATH=/opt/zomboid-backups/snapshots
+SERVER_CACHE_BASE=/root/server-cache
+STEAM_CMD_PATH=/usr/games/steamcmd
 NODE_ENV=production
 ```
 
-**Development database:** Run `npm run db:start` to start TimescaleDB container via docker-compose.
-
 ## Styling Conventions
 
-- **Dark theme**: Uses slate color palette via Tailwind CSS
-- **CSS Variables**: Primary colors use CSS custom properties
-- **Responsive**: Mobile-first approach with `lg:` breakpoints
-- **Icons**: Lucide React icon library
-- **Components**: Card-based layouts with `bg-card border border-border rounded-lg`
-- **Sidebar**: Collapsible with icon-only mode, hover tooltips
+- **Dark theme**: Slate color palette via Tailwind CSS
+- **CSS Variables**: Primary colors with custom properties
+- **Responsive**: Mobile-first with `lg:` breakpoints
+- **Icons**: Lucide React
+- **Components**: `bg-card border border-border rounded-lg`
+- **Sidebar**: Collapsible with icon-only mode and hover tooltips
 
 ## Known Limitations
 
-- **Logs Page**: Has real API (`/api/logs`) but requires log ingestion setup via log-watcher.
-- **Job Storage**: Restore and server jobs are stored in-memory (Map) and will be lost on server restart.
-- **Multi-installation**: Only default installation at `/opt/pzserver` is fully supported.
-- **Console Streaming**: Console capture state is in-memory and lost on server restart.
-- **Log Watcher**: Must be started manually or integrated into application startup for real-time ingestion.
+- **Job Storage**: In-memory Map, lost on restart (restore/server jobs)
+- **Multi-installation**: Only `/opt/pzserver` fully supported
+- **Console Streaming**: In-memory capture state, lost on restart
+- **Log Watcher**: Must be started manually/integrated for real-time ingestion
+- **System Monitor**: In-memory state, lost on restart (auto-restarts in layout)
+
+## Migration History
+
+### 2026-02-15: CACHEDIR Migration & Backup System Relocation
+
+**Problem Discovered**: Backup system was backing up stale/old data from legacy paths for CACHEDIR servers.
+
+**Changes Made**:
+1. **All servers migrated to CACHEDIR**: `servertest`, `duypzserver` now use `-cachedir` parameter
+2. **Backup system relocated**: `/root/Zomboid/backup-system/` → `/opt/zomboid-backups/` (34GB)
+3. **Legacy data archived**: 35GB of old Saves, Logs, Server, db moved to `/root/Zomboid-archive/`
+4. **Code simplified**: Removed backward compatibility, all paths now CACHEDIR-only
+5. **Parser configs updated**: Now require `serverName` parameter, separated backup system configs
+
+**Files Modified**:
+- `scripts/backup/backup.sh` - Always use CACHEDIR save paths
+- `scripts/backup/restore.sh` - Always restore to CACHEDIR location
+- `scripts/backup/paths-config.sh` - Updated `BACKUP_SYSTEM_ROOT`, `SERVER_CACHE_BASE`
+- `lib/paths.ts` - Removed legacy path fallbacks, updated backup paths
+- `lib/parsers/base-parser.ts` - `getParserConfigs(serverName)`, `getBackupSystemParserConfigs()`
+- `lib/log-watcher.ts` - Use new parser config functions
+- `backup-config.json` - Updated `snapshotsPath`
+
+**Current State**:
+- All servers use CACHEDIR isolation at `/root/server-cache/{serverName}/`
+- Backup system operates independently at `/opt/zomboid-backups/`
+- Legacy paths archived at `/root/Zomboid-archive/` (safe to delete after verification period)
+- `/root/Zomboid/` now empty (except `.claude` settings)
+
+**Testing Performed**:
+- ✅ Backup script creates snapshots from CACHEDIR location
+- ✅ Restore script restores to CACHEDIR location
+- ✅ Database integrity verification (players.db, vehicles.db)
+- ✅ Checksum verification
+- ✅ Emergency backup creation

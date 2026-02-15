@@ -3,27 +3,65 @@
  */
 
 import type { ParserType, ParsedLogResult, UnifiedLogEntry } from '@/types';
+import {
+  PZ_LOGS_PATH,
+  PZ_SERVER_LOG_PATH,
+  BACKUP_LOGS_PATH,
+  BACKUP_LOG_PATH,
+  RESTORE_LOG_PATH,
+  ROLLBACK_LOG_PATH,
+  SERVER_LOG_PATH,
+  SERVER_LOGS_PATH,
+} from '@/lib/paths';
 
-// Log file paths configuration
+// Log file paths configuration (legacy - shared location, deprecated)
 export const LOG_PATHS = {
-  // Project Zomboid game logs
-  pzLogs: '/root/Zomboid/Logs',
-  pzServerLog: (date: string) => `/root/Zomboid/Logs/${date}/DebugLog-server.txt`,
-  pzUserLog: '/root/Zomboid/Logs/user.txt',
-  pzChatLog: '/root/Zomboid/Logs/chat.txt',
-  pzPerkLog: '/root/Zomboid/Logs/PerkLog.txt',
-  pzPvpLog: '/root/Zomboid/Logs/pvp.txt',
-  pzItemLog: '/root/Zomboid/Logs/item.txt',
-  pzAdminLog: '/root/Zomboid/Logs/admin.txt',
-  pzCmdLog: '/root/Zomboid/Logs/cmd.txt',
-  pzClientActionLog: '/root/Zomboid/Logs/ClientActionLog.txt',
+  // Project Zomboid game logs (shared location)
+  pzLogs: PZ_LOGS_PATH,
+  pzServerLog: (date: string) => PZ_SERVER_LOG_PATH(date),
+  pzUserLog: `${PZ_LOGS_PATH}/user.txt`,
+  pzChatLog: `${PZ_LOGS_PATH}/chat.txt`,
+  pzPerkLog: `${PZ_LOGS_PATH}/PerkLog.txt`,
+  pzPvpLog: `${PZ_LOGS_PATH}/pvp.txt`,
+  pzItemLog: `${PZ_LOGS_PATH}/item.txt`,
+  pzAdminLog: `${PZ_LOGS_PATH}/admin.txt`,
+  pzCmdLog: `${PZ_LOGS_PATH}/cmd.txt`,
+  pzClientActionLog: `${PZ_LOGS_PATH}/ClientActionLog.txt`,
 
-  // Backup system logs
-  backupLogs: '/root/Zomboid/backup-system/logs',
-  backupLog: '/root/Zomboid/backup-system/logs/backup.log',
-  restoreLog: '/root/Zomboid/backup-system/logs/restore.log',
-  rollbackLog: '/root/Zomboid/backup-system/logs/rollback-cli.log',
+  // Backup system logs (not server-specific)
+  backupLogs: BACKUP_LOGS_PATH,
+  backupLog: BACKUP_LOG_PATH,
+  restoreLog: RESTORE_LOG_PATH,
+  rollbackLog: ROLLBACK_LOG_PATH,
 } as const;
+
+/**
+ * Get server-specific log paths
+ * Returns an object with all log file paths for a specific server
+ */
+export function getLogPaths(serverName: string) {
+  const base = SERVER_LOGS_PATH(serverName);
+
+  return {
+    // Project Zomboid game logs (server-specific)
+    pzLogs: base,
+    pzServerLog: (date: string) => SERVER_LOG_PATH(serverName, date, 'server'),
+    pzUserLog: SERVER_LOG_PATH(serverName, '', 'user'),
+    pzChatLog: SERVER_LOG_PATH(serverName, '', 'chat'),
+    pzPerkLog: SERVER_LOG_PATH(serverName, '', 'perk'),
+    pzPvpLog: SERVER_LOG_PATH(serverName, '', 'pvp'),
+    pzItemLog: SERVER_LOG_PATH(serverName, '', 'item'),
+    pzAdminLog: SERVER_LOG_PATH(serverName, '', 'admin'),
+    pzCmdLog: SERVER_LOG_PATH(serverName, '', 'cmd'),
+    pzClientActionLog: SERVER_LOG_PATH(serverName, '', 'clientAction'),
+
+    // Backup system logs (not server-specific, kept for compatibility)
+    backupLogs: BACKUP_LOGS_PATH,
+    backupLog: BACKUP_LOG_PATH,
+    restoreLog: RESTORE_LOG_PATH,
+    rollbackLog: ROLLBACK_LOG_PATH,
+  };
+}
 
 // Parser configuration for each log type
 export interface ParserConfig {
@@ -33,20 +71,38 @@ export interface ParserConfig {
   description: string;
 }
 
-// Available parsers configuration
-export const PARSER_CONFIGS: ParserConfig[] = [
-  { type: 'backup', filePath: LOG_PATHS.backupLog, enabled: true, description: 'Backup operations' },
-  { type: 'restore', filePath: LOG_PATHS.restoreLog, enabled: true, description: 'Restore operations' },
-  { type: 'user', filePath: LOG_PATHS.pzUserLog, enabled: true, description: 'Player events (login, logout, death)' },
-  { type: 'chat', filePath: LOG_PATHS.pzChatLog, enabled: true, description: 'Chat messages' },
-  { type: 'server', filePath: LOG_PATHS.pzServerLog(''), enabled: true, description: 'Server events (startup, shutdown, errors)' },
-  { type: 'perk', filePath: LOG_PATHS.pzPerkLog, enabled: true, description: 'Player skill progression' },
-  { type: 'pvp', filePath: LOG_PATHS.pzPvpLog, enabled: true, description: 'Combat and PvP events' },
-  { type: 'item', filePath: LOG_PATHS.pzItemLog, enabled: false, description: 'Item placement (disabled - high volume)' },
-  { type: 'admin', filePath: LOG_PATHS.pzAdminLog, enabled: true, description: 'Admin commands' },
-  { type: 'cmd', filePath: LOG_PATHS.pzCmdLog, enabled: true, description: 'Server commands' },
-  { type: 'vehicle', filePath: LOG_PATHS.pzClientActionLog, enabled: true, description: 'Vehicle events' },
-];
+/**
+ * Get parser configurations for a specific server
+ * @param serverName - Server name for server-specific log paths (required)
+ * @returns Array of parser configurations with server-specific file paths
+ */
+export function getParserConfigs(serverName: string): ParserConfig[] {
+  const logPaths = getLogPaths(serverName);
+
+  return [
+    // Project Zomboid game logs (server-specific)
+    { type: 'user', filePath: logPaths.pzUserLog, enabled: true, description: 'Player events (login, logout, death)' },
+    { type: 'chat', filePath: logPaths.pzChatLog, enabled: true, description: 'Chat messages' },
+    { type: 'server', filePath: logPaths.pzServerLog(''), enabled: true, description: 'Server events (startup, shutdown, errors)' },
+    { type: 'perk', filePath: logPaths.pzPerkLog, enabled: true, description: 'Player skill progression' },
+    { type: 'pvp', filePath: logPaths.pzPvpLog, enabled: true, description: 'Combat and PvP events' },
+    { type: 'item', filePath: logPaths.pzItemLog, enabled: false, description: 'Item placement (disabled - high volume)' },
+    { type: 'admin', filePath: logPaths.pzAdminLog, enabled: true, description: 'Admin commands' },
+    { type: 'cmd', filePath: logPaths.pzCmdLog, enabled: true, description: 'Server commands' },
+    { type: 'vehicle', filePath: logPaths.pzClientActionLog, enabled: true, description: 'Vehicle events' },
+  ];
+}
+
+/**
+ * Get backup system parser configurations (global logs, not server-specific)
+ * @returns Array of parser configurations for global backup system logs
+ */
+export function getBackupSystemParserConfigs(): ParserConfig[] {
+  return [
+    { type: 'backup', filePath: LOG_PATHS.backupLog, enabled: true, description: 'Backup operations' },
+    { type: 'restore', filePath: LOG_PATHS.restoreLog, enabled: true, description: 'Restore operations' },
+  ];
+}
 
 // Abstract base class for log parsers
 export abstract class BaseParser {

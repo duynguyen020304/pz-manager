@@ -91,7 +91,7 @@ export function AddServerModal({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-muted-foreground text-xs">
-                  Scanning: /root/Zomboid/Saves/Multiplayer
+                  Scanning server save directories
                 </p>
                 <Button
                   onClick={() => onDetect()}
@@ -120,7 +120,7 @@ export function AddServerModal({
                     <RefreshCw className="w-6 h-6 text-primary animate-spin" />
                   </div>
                   <p className="text-sm font-medium text-foreground mb-1">Scanning for servers...</p>
-                  <p className="text-xs text-muted-foreground">Checking /root/Zomboid/Saves/Multiplayer</p>
+                  <p className="text-xs text-muted-foreground">Checking server save directories</p>
                 </div>
               )}
 

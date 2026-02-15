@@ -3,13 +3,12 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { fileExists } from './file-utils';
+import { ZOMBOID_PATH, STEAM_CMD_PATH, getServerIniPath, SERVER_WORKSHOP_PATH } from '@/lib/paths';
 import type { ServerModsConfig, ServerMod, ModEntry, ValidationResult } from '@/types/index.js';
 
 const execAsync = promisify(exec);
 
-const ZOMBOID_PATH = process.env.ZOMBOID_PATH || '/root/Zomboid';
 const STEAM_APP_ID = '108600';
-const STEAM_CMD_PATH = process.env.STEAM_CMD_PATH || '/root/Steam/steamcmd.sh';
 
 const STEAM_WORKSHOP_REGEX = /steamcommunity\.com\/sharedfiles\/filedetails\/\?id=(\d+)/;
 
@@ -67,7 +66,7 @@ export function parseWorkshopIdFromUrl(url: string): string {
  * Parse a server INI file to extract mod configuration
  */
 export async function getServerMods(serverName: string): Promise<ServerModsConfig> {
-  const iniPath = path.join(ZOMBOID_PATH, 'Server', `${serverName}.ini`);
+  const iniPath = getServerIniPath(serverName);
   
   if (!await fileExists(iniPath)) {
     throw new Error(`Server configuration file not found: ${iniPath}`);
@@ -134,31 +133,39 @@ export async function getServerModSummary(serverName: string): Promise<{
 }
 
 /**
- * Get workshop mod directory path
+ * Get global workshop mod directory path (steamcmd download location)
  */
-function getWorkshopDir(workshopId: string): string {
+function getGlobalWorkshopDir(workshopId: string): string {
   return path.join(ZOMBOID_PATH, 'steamapps', 'workshop', 'content', STEAM_APP_ID, workshopId);
 }
 
 /**
- * Download a mod from Steam Workshop using steamcmd
+ * Get server-specific workshop mod directory path (CACHEDIR location)
  */
-export async function downloadMod(workshopId: string): Promise<string> {
-  const workshopDir = getWorkshopDir(workshopId);
-  
-  if (await fileExists(workshopDir)) {
+function getServerWorkshopDir(serverName: string, workshopId: string): string {
+  return path.join(SERVER_WORKSHOP_PATH(serverName), workshopId);
+}
+
+/**
+ * Download a mod from Steam Workshop using steamcmd
+ * Downloads to global Steam workshop location (steamcmd limitation)
+ */
+export async function downloadMod(serverName: string, workshopId: string): Promise<string> {
+  const globalWorkshopDir = getGlobalWorkshopDir(workshopId);
+
+  if (await fileExists(globalWorkshopDir)) {
     console.log(`Mod ${workshopId} already downloaded`);
-    return workshopDir;
+    return globalWorkshopDir;
   }
-  
+
   console.log(`Downloading mod ${workshopId} via steamcmd...`);
-  
+
   const cmd = `${STEAM_CMD_PATH} +login anonymous +workshop_download_item ${STEAM_APP_ID} ${workshopId} +quit`;
-  
+
   try {
     await execAsync(cmd, { timeout: 300000 });
     console.log(`Successfully downloaded mod ${workshopId}`);
-    return workshopDir;
+    return globalWorkshopDir;
   } catch (error) {
     console.error(`Failed to download mod ${workshopId}:`, error);
     throw new Error(`Failed to download mod from Steam Workshop. Please check the URL and try again.`);
@@ -273,7 +280,7 @@ export async function addModToServer(
   modId: string,
   modName: string
 ): Promise<ModEntry> {
-  const iniPath = path.join(ZOMBOID_PATH, 'Server', `${serverName}.ini`);
+  const iniPath = getServerIniPath(serverName);
   
   if (!await fileExists(iniPath)) {
     throw new Error(`Server configuration file not found: ${iniPath}`);
@@ -324,7 +331,7 @@ export async function addModToServer(
  * Update mod order in server INI configuration
  */
 export async function updateModOrder(serverName: string, mods: ModEntry[]): Promise<void> {
-  const iniPath = path.join(ZOMBOID_PATH, 'Server', `${serverName}.ini`);
+  const iniPath = getServerIniPath(serverName);
   
   if (!await fileExists(iniPath)) {
     throw new Error(`Server configuration file not found: ${iniPath}`);
@@ -349,7 +356,7 @@ export async function updateModOrder(serverName: string, mods: ModEntry[]): Prom
  * Remove a mod from a server's INI configuration
  */
 export async function removeModFromServer(serverName: string, workshopId: string): Promise<void> {
-  const iniPath = path.join(ZOMBOID_PATH, 'Server', `${serverName}.ini`);
+  const iniPath = getServerIniPath(serverName);
   
   if (!await fileExists(iniPath)) {
     throw new Error(`Server configuration file not found: ${iniPath}`);

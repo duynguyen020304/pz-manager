@@ -6,7 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parseAndIngestFile, updateFilePosition } from './log-manager';
-import { LOG_PATHS } from './parsers';
+import { LOG_PATHS, getLogPaths, getBackupSystemParserConfigs } from './parsers';
 import { getRunningServers } from './server-manager';
 import type { ParserType } from '@/types';
 
@@ -272,24 +272,30 @@ export async function startWatchingAll(servers: string[] = []): Promise<void> {
   }
 
   // Watch backup system logs (not server-specific)
-  watchLogFile(LOG_PATHS.backupLog, 'backup');
-  watchLogFile(LOG_PATHS.restoreLog, 'restore');
-  watchLogFile(LOG_PATHS.rollbackLog, 'restore');
+  const backupConfigs = getBackupSystemParserConfigs();
+  for (const config of backupConfigs) {
+    watchLogFile(config.filePath, config.type);
+  }
 
   // Watch PZ game logs for each server
   for (const server of serversToWatch) {
-    watchLogFile(LOG_PATHS.pzUserLog, 'user', server);
-    watchLogFile(LOG_PATHS.pzChatLog, 'chat', server);
-    watchLogFile(LOG_PATHS.pzPerkLog, 'perk', server);
-    watchLogFile(LOG_PATHS.pzPvpLog, 'pvp', server);
-    watchLogFile(LOG_PATHS.pzAdminLog, 'admin', server);
-    watchLogFile(LOG_PATHS.pzCmdLog, 'cmd', server);
+    // Get server-specific log paths
+    const logPaths = getLogPaths(server);
+
+    // Watch all game logs for this server
+    watchLogFile(logPaths.pzUserLog, 'user', server);
+    watchLogFile(logPaths.pzChatLog, 'chat', server);
+    watchLogFile(logPaths.pzPerkLog, 'perk', server);
+    watchLogFile(logPaths.pzPvpLog, 'pvp', server);
+    watchLogFile(logPaths.pzAdminLog, 'admin', server);
+    watchLogFile(logPaths.pzCmdLog, 'cmd', server);
   }
 
   // Watch today's server log for each running server
   const today = new Date().toISOString().split('T')[0];
   for (const server of serversToWatch) {
-    const serverLogPath = LOG_PATHS.pzServerLog(today);
+    const logPaths = getLogPaths(server);
+    const serverLogPath = logPaths.pzServerLog(today);
     if (fs.existsSync(path.dirname(serverLogPath))) {
       watchLogFile(serverLogPath, 'server', server);
     }
@@ -336,29 +342,29 @@ export async function ingestAllLogs(servers: string[] = []): Promise<{
   const errors: string[] = [];
 
   // Ingest backup system logs
-  for (const logType of ['backup', 'restore'] as const) {
-    const filePath = logType === 'backup' ? LOG_PATHS.backupLog :
-                     logType === 'restore' ? LOG_PATHS.restoreLog :
-                     LOG_PATHS.rollbackLog;
-
+  const backupConfigs = getBackupSystemParserConfigs();
+  for (const config of backupConfigs) {
     try {
-      const result = await parseAndIngestFile(filePath, logType);
+      const result = await parseAndIngestFile(config.filePath, config.type);
       totalEntries += result.entriesAdded;
       errors.push(...result.errors);
     } catch (error) {
-      errors.push(`Failed to ingest ${filePath}: ${error}`);
+      errors.push(`Failed to ingest ${config.filePath}: ${error}`);
     }
   }
 
   // Ingest PZ game logs
   for (const server of servers) {
+    // Get server-specific log paths
+    const logPaths = getLogPaths(server);
+
     const logFiles: Array<{ path: string; type: ParserType }> = [
-      { path: LOG_PATHS.pzUserLog, type: 'user' },
-      { path: LOG_PATHS.pzChatLog, type: 'chat' },
-      { path: LOG_PATHS.pzPerkLog, type: 'perk' },
-      { path: LOG_PATHS.pzPvpLog, type: 'pvp' },
-      { path: LOG_PATHS.pzAdminLog, type: 'admin' },
-      { path: LOG_PATHS.pzCmdLog, type: 'cmd' },
+      { path: logPaths.pzUserLog, type: 'user' },
+      { path: logPaths.pzChatLog, type: 'chat' },
+      { path: logPaths.pzPerkLog, type: 'perk' },
+      { path: logPaths.pzPvpLog, type: 'pvp' },
+      { path: logPaths.pzAdminLog, type: 'admin' },
+      { path: logPaths.pzCmdLog, type: 'cmd' },
     ];
 
     for (const { path: filePath, type } of logFiles) {

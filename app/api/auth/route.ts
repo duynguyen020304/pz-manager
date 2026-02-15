@@ -5,15 +5,19 @@ export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
 
+    // Trim whitespace from username and password
+    const trimmedUsername = username?.trim();
+    const trimmedPassword = password?.trim();
+
     // Require username
-    if (!username) {
+    if (!trimmedUsername) {
       return NextResponse.json(
         { success: false, error: 'Username is required' },
         { status: 400 }
       );
     }
 
-    if (!password) {
+    if (!trimmedPassword) {
       return NextResponse.json(
         { success: false, error: 'Password is required' },
         { status: 400 }
@@ -26,7 +30,7 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || undefined;
 
     // Database authentication
-    const result = await login(username, password, ipAddress, userAgent);
+    const result = await login(trimmedUsername, trimmedPassword, ipAddress, userAgent);
 
     if (!result.success) {
       return NextResponse.json(

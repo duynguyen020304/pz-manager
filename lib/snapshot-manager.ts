@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { Snapshot, SnapshotManifest, ServerStats, ScheduleStats, RestoreJob } from '@/types';
 import { loadConfig } from './config-manager';
+import { BACKUP_SCRIPTS_PATH } from './paths';
 import {
   directoryExists,
   readJson,
@@ -163,7 +164,7 @@ async function executeRestore(
   job.progress = 10;
 
   try {
-    const restoreScript = '/root/Zomboid/backup-system/bin/restore.sh';
+    const restoreScript = path.join(BACKUP_SCRIPTS_PATH, 'restore.sh');
     
     // Check if script exists
     try {
@@ -214,7 +215,7 @@ export async function deleteSnapshot(snapshotPath: string): Promise<void> {
 
 export async function createBackup(serverName: string, schedule: string): Promise<void> {
   try {
-    const backupScript = '/root/Zomboid/backup-system/bin/backup.sh';
+    const backupScript = path.join(BACKUP_SCRIPTS_PATH, 'backup.sh');
     
     await fs.access(backupScript, fs.constants.X_OK);
     

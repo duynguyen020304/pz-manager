@@ -74,7 +74,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       );
     }
     
-    const modPath = await downloadMod(workshopId);
+    const modPath = await downloadMod(serverName, workshopId);
     
     const validation = await validateMod(modPath);
     if (!validation.isValid) {

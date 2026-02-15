@@ -6,6 +6,7 @@
     "dev": "HOST=0.0.0.0 PORT=3001 next dev -p 3001",
     "build": "next build",
     "start": "HOST=127.0.0.1 next start",
+    "deploy": "./scripts/deploy.sh",
     "lint": "eslint",
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
