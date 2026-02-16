@@ -56,6 +56,8 @@ npm run db:reset     # Reset database
 - **tmux** - Server session management
 - **steamcmd** - Workshop mod downloads
 - **@dnd-kit** - Drag-and-drop mod ordering UI
+- **Recharts** - Data visualization charts
+- **EventSource** - Server-Sent Events for real-time log streaming
 - **Vitest** - Unit testing with pg-mem
 
 ## Architecture
@@ -226,7 +228,85 @@ Wildcard: `{ "*": ["*"] }` grants all permissions.
 4. Independent mod/workshop installations
 5. Clean separation for debugging
 
+## Server Configuration Management
+
+**Server INI Configuration** (`lib/ini-config-manager.ts`, `lib/ini-utils.ts`):
+- `readIniFile(serverName)` - Parse `{SERVER_CACHE_DIR}/Server/{serverName}.ini` into key-value pairs
+- `writeIniFile(serverName, config)` - Write config, preserving comments from existing file
+- `updateIniValues(serverName, updates)` - Partial update of specific keys
+- `getIniValue(serverName, key)` / `setIniValue(serverName, key, value)` - Single key operations
+
+**INI Utilities** (`lib/ini-utils.ts`):
+- `parseIniContent(content)` - Parse INI string to config object (handles # and ; comments)
+- `generateIniContent(config, existingContent)` - Generate INI while preserving comments
+- `parseBooleanValue(value)` / `parseNumberValue(value)` / `booleanToString(bool)` - Type converters
+- `getDefaultIniConfig()` - Returns default config template for new servers
+
+**API Endpoint**: `GET/POST/DELETE /api/servers/[name]/config`
+- GET: Returns full INI as JSON object
+- POST: Accepts `{ config?: IniConfig, updates?: Record<string, string> }` for full or partial updates
+- DELETE: Resets to empty config (server regenerates defaults on next start)
+
+**UI Components**:
+- `QuickConfigPanel` (`components/servers/quick-config-panel.tsx`) - Slide-out panel with:
+  - RAM allocation sliders (XMS/XMX) with system RAM awareness
+  - Max players stepper control (1-100)
+  - Toggle cards for Public, PVP, Safehouses, Loot Respawn
+  - Link to advanced settings
+- `AdvancedSettingsDrawer` (`components/servers/advanced-settings-drawer.tsx`) - Full 80+ settings with:
+  - Searchable/filterable settings list
+  - Dynamic input types based on key names (bool, number, string)
+  - Reset to defaults functionality
+  - Unsaved changes warning
+
+**Dynamic INI Input** (`components/servers/dynamic-ini-input.tsx`):
+- Auto-detects input type from INI key names:
+  - Boolean: keys ending with "Enabled" or containing "PVP", "Public", "Pause", "Allow"
+  - Number: keys with "Max", "Min", "Port", "Count", "Limit", "Percent"
+  - String: everything else
+- Preserves original INI values when opened
+
+## Server View Modes
+
+**View Toggle** (`components/servers/view-mode-toggle.tsx`):
+- Grid view (default): Card-based layout with visual status indicators
+- List view: Compact table layout with full server details and inline actions
+
+**Server List View** (`components/servers/server-list-view.tsx`):
+- Status badges with animated spinners for starting/stopping
+- Config/DB indicator tags
+- Inline action buttons (Quick Config, Start/Stop, Console, Rollback, Delete)
+- Uptime display for running servers
+- Compact path display with truncation
+
 ## Log Management System
+
+### Real-Time Log Streaming
+
+**Log Stream Manager** (`lib/log-stream-manager.ts`):
+- Singleton service using EventEmitter for pub/sub
+- Batches log entries (200ms interval, max 50 entries) to reduce client updates
+- Server-specific subscriptions with client tracking
+- Sorted batch delivery by timestamp
+
+**SSE API** (`/api/logs/stream/route.ts`):
+- `GET /api/logs/stream?server={name}&types={csv}&since={iso}`
+- Event types: `initial`, `batch`, `heartbeat`, `error`
+- 5-second heartbeat to keep connections alive
+- Auto-cleanup on client disconnect
+
+**React Hooks**:
+- `useLogStream` (`hooks/use-log-stream.ts`) - SSE connection with:
+  - Exponential backoff reconnection (1s → 30s max)
+  - Timestamp tracking for incremental updates
+  - Separate callbacks for initial and batch events
+- `useUnifiedLogs` (`hooks/use-unified-logs.ts`) - Combines:
+  - Initial query via React Query
+  - Real-time streaming via useLogStream
+  - Automatic sorting and deduplication
+  - 1000-entry limit with oldest entries trimmed
+
+**Integration**: Log watcher calls `logStreamManager.queueEntries()` which batches and emits to SSE clients.
 
 ### Parsers (`lib/parsers/`)
 
@@ -359,6 +439,9 @@ Each extends `BaseParser`:
 - `POST /api/servers/[name]/start` - Start server
 - `POST /api/servers/[name]/stop` - Stop server
 - `GET /api/servers/[name]/console` - SSE console stream
+- `GET /api/servers/[name]/config` - Get server INI configuration
+- `POST /api/servers/[name]/config` - Update server INI configuration
+- `DELETE /api/servers/[name]/config` - Reset server configuration to defaults
 - `GET /api/servers/[name]/mods` - Get server mods
 - `POST /api/servers/[name]/mods` - Add mod (workshop URL or ID)
 - `PATCH /api/servers/[name]/mods/order` - Update mod load order
@@ -379,6 +462,7 @@ Each extends `BaseParser`:
 
 **Logs:**
 - `GET /api/logs?source&server&eventType&username&level&from&to&limit&offset` - Unified query
+- `GET /api/logs/stream?server&types&since` - SSE real-time log streaming
 
 **Metrics & Monitoring:**
 - `GET /api/metrics?type=current` - Current metrics
@@ -390,10 +474,10 @@ Each extends `BaseParser`:
 
 **Sidebar:**
 - `/dashboard` - Overview with server status, quick actions
-- `/servers` - Server management (start/stop controls, auto-detect)
+- `/servers` - Server management (grid/list view, start/stop controls, quick config, auto-detect)
 - `/monitor` - System performance monitoring
 - `/schedules` - Backup schedule CRUD
-- `/logs` - Unified log viewer with filtering
+- `/logs` - Unified log viewer with filtering and real-time streaming
 - `/accounts` - User CRUD
 - `/roles` - Role CRUD with permission matrix
 - `/settings` - Tabs: Schedules, Servers, Settings
@@ -409,6 +493,12 @@ Each extends `BaseParser`:
 **Config Manager**: 5-second TTL cache to avoid excessive file I/O
 
 **Route Groups**: `(authenticated)` folder creates protected route group with shared layout
+
+**UI Component Patterns**:
+- **Slide-out Panels/Drawers**: Fixed right-side overlays with backdrop (`QuickConfigPanel`, `AdvancedSettingsDrawer`)
+- **View Mode Toggles**: Segmented control for grid/list view switching (`ViewModeToggle`)
+- **Dynamic Input Types**: Auto-detection from key names (bool/number/string) in `DynamicIniInput`
+- **Real-Time Updates**: SSE streaming pattern used for console logs and unified log streaming
 
 **Rollback Wizard Flow**:
 1. Select Server (dropdown with badges)
@@ -507,9 +597,57 @@ NODE_ENV=production
 - **Multi-installation**: Only `/opt/pzserver` fully supported
 - **Console Streaming**: In-memory capture state, lost on restart
 - **Log Watcher**: Must be started manually/integrated for real-time ingestion
+- **Log Stream Manager**: In-memory batch buffers and subscriptions, lost on restart
 - **System Monitor**: In-memory state, lost on restart (auto-restarts in layout)
 
 ## Migration History
+
+### 2026-02-16: Server Configuration UI & Real-Time Log Streaming
+
+**New Features Added**:
+1. **Server Configuration Management**: Web UI for editing server INI files
+   - Quick Config Panel with RAM sliders, max players, and common toggles
+   - Advanced Settings Drawer with 80+ editable settings and search
+   - Dynamic input types (boolean toggles, number steppers, text inputs)
+   - API endpoint: `/api/servers/[name]/config` (GET/POST/DELETE)
+   - INI utilities library (`lib/ini-utils.ts`) for parsing/writing INI files
+   - Config manager (`lib/ini-config-manager.ts`) for server-side operations
+
+2. **Real-Time Log Streaming**: SSE-based streaming for live log updates
+   - Log Stream Manager (`lib/log-stream-manager.ts`) with batching (200ms, max 50 entries)
+   - SSE endpoint: `/api/logs/stream?server={name}&types={csv}&since={iso}`
+   - React hooks: `useLogStream`, `useUnifiedLogs` with reconnection logic
+   - 5-second heartbeat, exponential backoff reconnection
+
+3. **Server List/View Modes**: Alternative compact list view
+   - `ViewModeToggle` component for grid/list switching
+   - `ServerListView` component with inline actions and status badges
+   - Better suited for high server counts than card grid
+
+4. **UI Components**:
+   - `RamSlider` - Dual-handle slider for XMS/XMX memory allocation
+   - `StepperControl` - Increment/decrement input for numeric values
+   - `ToggleCard` - Labeled toggle switch with icon and description
+   - `DynamicIniInput` - Auto-detects input type from INI key names
+   - `CollapsibleSection` - Expandable/collapsible content sections
+
+**Files Added**:
+- `app/api/logs/stream/route.ts` - SSE streaming endpoint
+- `app/api/servers/[name]/config/route.ts` - Server config API
+- `lib/ini-config-manager.ts` - Server-side INI operations
+- `lib/ini-utils.ts` - Client/server INI utilities
+- `lib/log-stream-manager.ts` - Real-time log batching
+- `hooks/use-log-stream.ts` - SSE connection hook
+- `hooks/use-unified-logs.ts` - Combined query + streaming
+- `components/servers/quick-config-panel.tsx`
+- `components/servers/advanced-settings-drawer.tsx`
+- `components/servers/dynamic-ini-input.tsx`
+- `components/servers/server-list-view.tsx`
+- `components/servers/view-mode-toggle.tsx`
+- `components/ui/ram-slider.tsx`
+- `components/ui/stepper-control.tsx`
+- `components/ui/toggle-card.tsx`
+- `components/ui/collapsible-section.tsx`
 
 ### 2026-02-15: CACHEDIR Migration & Backup System Relocation
 

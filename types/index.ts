@@ -570,3 +570,28 @@ export interface SpikeDetectionState {
   lastNetworkRxValues: number[];
   lastNetworkTxValues: number[];
 }
+
+// ============================================
+// LOG STREAMING TYPES
+// ============================================
+
+export interface LogStreamEvent {
+  type: 'initial' | 'batch' | 'heartbeat' | 'error';
+  server: string;
+  timestamp: string;
+  data?: UnifiedLogEntry[];
+  error?: string;
+}
+
+export interface LogStreamOptions {
+  server: string;
+  types?: string[];
+  since?: string;
+}
+
+export interface LogStreamSubscription {
+  clientId: string;
+  serverName: string;
+  types: string[];
+  connectedAt: Date;
+}

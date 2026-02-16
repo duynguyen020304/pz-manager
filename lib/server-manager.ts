@@ -3,7 +3,6 @@ import { promisify } from 'util';
 import fs from 'fs';
 import { ServerStatus, ServerJob, PZInstallation, ParserType } from '@/types';
 import { loadConfig } from './config-manager';
-import { LOG_PATHS } from './parsers';
 import { SERVER_CACHE_DIR } from './paths';
 
 const execAsync = promisify(exec);

@@ -135,6 +135,13 @@ export const getServerIniPath = (serverName: string): string =>
   `${SERVER_CACHE_DIR(serverName)}/Server/${serverName}.ini`;
 
 /**
+ * Get SandboxVars.lua file path for a server
+ * Contains game difficulty settings (zombie behavior, loot, etc.)
+ */
+export const getSandboxVarsPath = (serverName: string): string =>
+  `${SERVER_CACHE_DIR(serverName)}/Server/${serverName}_SandboxVars.lua`;
+
+/**
  * Get player database path for a server
  * All servers use CACHEDIR isolation
  */

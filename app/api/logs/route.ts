@@ -1,18 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUnifiedLogs } from '@/lib/log-manager';
+import { getUnifiedLogs, getUnifiedLogsSince } from '@/lib/log-manager';
 import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
     await requireAuth(request);
 
     const { searchParams } = new URL(request.url);
 
-    // Parse filters
+    const source = searchParams.get('source');
+    const server = searchParams.get('server');
+    const typesParam = searchParams.get('types');
+    const sinceParam = searchParams.get('since');
+
+    if (source === 'unified' || typesParam) {
+      const types = typesParam ? typesParam.split(',').map(t => t.trim()) : [];
+      const since = sinceParam ? new Date(sinceParam) : undefined;
+      const limit = parseInt(searchParams.get('limit') || '100', 10);
+
+      if (!server) {
+        return NextResponse.json(
+          { success: false, error: 'Server parameter is required for unified logs' },
+          { status: 400 }
+        );
+      }
+
+      const logs = await getUnifiedLogsSince(server, types, since, limit);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          logs,
+          pagination: {
+            total: logs.length,
+            limit,
+            offset: 0,
+            hasMore: false,
+          },
+        },
+      });
+    }
+
     const filters = {
-      source: searchParams.get('source') || 'backup',
-      server: searchParams.get('server') || undefined,
+      source: source || 'backup',
+      server: server || undefined,
       eventType: searchParams.get('eventType') || undefined,
       username: searchParams.get('username') || undefined,
       level: searchParams.get('level') || undefined,

@@ -6,9 +6,30 @@
 import fs from 'fs';
 import path from 'path';
 import { parseAndIngestFile, updateFilePosition } from './log-manager';
-import { LOG_PATHS, getLogPaths, getBackupSystemParserConfigs } from './parsers';
+import { getLogPaths, getBackupSystemParserConfigs } from './parsers';
 import { getRunningServers } from './server-manager';
-import type { ParserType } from '@/types';
+import { logStreamManager } from './log-stream-manager';
+import type { ParserType, UnifiedLogEntry } from '@/types';
+
+function mapParserTypeToSource(parserType: ParserType): UnifiedLogEntry['source'] {
+  switch (parserType) {
+    case 'user':
+      return 'player';
+    case 'chat':
+      return 'chat';
+    case 'pvp':
+      return 'pvp';
+    case 'server':
+      return 'server';
+    case 'perk':
+      return 'skill';
+    case 'backup':
+    case 'restore':
+      return 'backup';
+    default:
+      return 'server';
+  }
+}
 
 // Watch state for each monitored file
 interface WatchState {
@@ -191,6 +212,27 @@ async function ingestNewContent(state: WatchState): Promise<void> {
       console.log(
         `[LogWatcher] Ingested ${result.entriesAdded} entries from ${state.filePath}`
       );
+
+      if (state.serverName && state.serverName !== 'unknown' && result.entriesAdded > 0) {
+        const unifiedEntries: UnifiedLogEntry[] = [];
+        const source = mapParserTypeToSource(state.parserType);
+        
+        for (let i = 0; i < result.entriesAdded; i++) {
+          unifiedEntries.push({
+            id: `${source}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            time: new Date(),
+            source,
+            server: state.serverName,
+            eventType: state.parserType,
+            level: 'INFO',
+            message: `Parsed from ${path.basename(state.filePath)}`,
+          });
+        }
+        
+        if (unifiedEntries.length > 0) {
+          logStreamManager.queueEntries(state.serverName, unifiedEntries);
+        }
+      }
     }
 
     if (result.errors.length > 0) {

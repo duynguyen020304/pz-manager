@@ -16,7 +16,8 @@ import {
   RotateCcw,
   Trash2,
   Loader2,
-  Package
+  Package,
+  Settings
 } from 'lucide-react';
 
 interface ServerCardProps {
@@ -28,6 +29,7 @@ interface ServerCardProps {
   onConsole: () => void;
   onRollback: () => void;
   onManageMods: () => void;
+  onQuickConfig?: () => void;
 }
 
 export function ServerCard({
@@ -38,7 +40,8 @@ export function ServerCard({
   onStop,
   onConsole,
   onRollback,
-  onManageMods
+  onManageMods,
+  onQuickConfig
 }: ServerCardProps) {
   const { data: mods, isLoading: isLoadingMods } = useServerMods(server.name);
   
@@ -178,6 +181,19 @@ export function ServerCard({
             </Button>
           )}
 
+          {/* Quick Config Button */}
+          {onQuickConfig && (
+            <Button
+              onClick={onQuickConfig}
+              variant="secondary"
+              size="sm"
+              className="hidden sm:flex"
+              leftIcon={<Settings className="w-4 h-4" />}
+            >
+              Configure
+            </Button>
+          )}
+
           {/* Secondary Actions - Icon buttons on mobile, text on larger screens */}
           <Button
             onClick={onRollback}
@@ -213,6 +229,17 @@ export function ServerCard({
 
         {/* Mobile Secondary Actions */}
         <div className="flex gap-2 sm:hidden">
+          {onQuickConfig && (
+            <Button
+              onClick={onQuickConfig}
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+              leftIcon={<Settings className="w-4 h-4" />}
+            >
+              Configure
+            </Button>
+          )}
           <Button
             onClick={onRollback}
             disabled={isRunning || isLoading}
@@ -222,17 +249,6 @@ export function ServerCard({
             leftIcon={<RotateCcw className="w-4 h-4" />}
           >
             Rollback
-          </Button>
-          
-          <Button
-            onClick={onConsole}
-            disabled={!isRunning}
-            variant="secondary"
-            size="sm"
-            className="flex-1"
-            leftIcon={<Terminal className="w-4 h-4" />}
-          >
-            Console
           </Button>
         </div>
       </div>

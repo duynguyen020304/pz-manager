@@ -3,7 +3,7 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { fileExists } from './file-utils';
-import { ZOMBOID_PATH, STEAM_CMD_PATH, getServerIniPath, SERVER_WORKSHOP_PATH } from '@/lib/paths';
+import { ZOMBOID_PATH, STEAM_CMD_PATH, getServerIniPath } from '@/lib/paths';
 import type { ServerModsConfig, ServerMod, ModEntry, ValidationResult } from '@/types/index.js';
 
 const execAsync = promisify(exec);
@@ -139,12 +139,6 @@ function getGlobalWorkshopDir(workshopId: string): string {
   return path.join(ZOMBOID_PATH, 'steamapps', 'workshop', 'content', STEAM_APP_ID, workshopId);
 }
 
-/**
- * Get server-specific workshop mod directory path (CACHEDIR location)
- */
-function getServerWorkshopDir(serverName: string, workshopId: string): string {
-  return path.join(SERVER_WORKSHOP_PATH(serverName), workshopId);
-}
 
 /**
  * Download a mod from Steam Workshop using steamcmd

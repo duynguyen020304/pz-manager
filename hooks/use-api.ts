@@ -487,3 +487,105 @@ export function useStopLogWatching() {
     }
   });
 }
+
+// Server Config
+export function useServerConfig(serverName: string) {
+  return useQuery({
+    queryKey: ['servers', serverName, 'config'],
+    queryFn: () => api.getServerConfig(serverName),
+    enabled: !!serverName,
+    staleTime: 30000
+  });
+}
+
+export function useUpdateServerConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ serverName, updates, config }: { 
+      serverName: string; 
+      updates?: Record<string, string>;
+      config?: api.IniConfig;
+    }) => {
+      if (config) {
+        return api.replaceServerConfig(serverName, config);
+      }
+      if (updates) {
+        return api.updateServerConfig(serverName, updates);
+      }
+      throw new Error('Either updates or config must be provided');
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['servers', variables.serverName, 'config'] });
+    }
+  });
+}
+
+export function useResetServerConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: api.resetServerConfig,
+    onSuccess: (_, serverName) => {
+      queryClient.invalidateQueries({ queryKey: ['servers', serverName, 'config'] });
+    }
+  });
+}
+
+// Sandbox Vars (Difficulty Settings)
+export function useServerSandboxVars(serverName: string) {
+  return useQuery({
+    queryKey: ['servers', serverName, 'sandbox-vars'],
+    queryFn: () => api.getServerSandboxVars(serverName),
+    enabled: !!serverName,
+    staleTime: 30000
+  });
+}
+
+export function useUpdateServerSandboxVars() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ serverName, updates, config }: { 
+      serverName: string; 
+      updates?: api.SandboxVars;
+      config?: api.SandboxVars;
+    }) => {
+      if (config) {
+        return api.replaceServerSandboxVars(serverName, config);
+      }
+      if (updates) {
+        return api.updateServerSandboxVars(serverName, updates);
+      }
+      throw new Error('Either updates or config must be provided');
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['servers', variables.serverName, 'sandbox-vars'] });
+    }
+  });
+}
+
+export function useApplyDifficultyPreset() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ serverName, presetId }: { 
+      serverName: string; 
+      presetId: 'apocalypse' | 'survivor' | 'builder';
+    }) => api.applyDifficultyPreset(serverName, presetId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['servers', variables.serverName, 'sandbox-vars'] });
+    }
+  });
+}
+
+export function useResetServerSandboxVars() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (serverName: string) => api.resetServerSandboxVars(serverName),
+    onSuccess: (_, serverName) => {
+      queryClient.invalidateQueries({ queryKey: ['servers', serverName, 'sandbox-vars'] });
+    }
+  });
+}

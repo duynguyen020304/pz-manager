@@ -739,6 +739,87 @@ export async function getUnifiedLogs(filters: LogFilters = {}): Promise<{ logs: 
 }
 
 // ============================================
+// UNIFIED LOG QUERY WITH SINCE (for streaming)
+// ============================================
+
+const TYPE_TO_TABLE: Record<string, string> = {
+  player: 'pz_player_events',
+  chat: 'pz_chat_messages',
+  server: 'pz_server_events',
+  pvp: 'pz_pvp_events',
+  skill: 'pz_skill_snapshots',
+};
+
+export async function getUnifiedLogsSince(
+  server: string,
+  types: string[] = [],
+  since?: Date,
+  limit: number = 100
+): Promise<UnifiedLogEntry[]> {
+  const selectedTypes = types.length > 0 ? types : Object.keys(TYPE_TO_TABLE);
+  const queries: string[] = [];
+  const params: (string | Date | number)[] = [server];
+  let paramIndex = 2;
+
+  for (const type of selectedTypes) {
+    const table = TYPE_TO_TABLE[type];
+    if (!table) continue;
+
+    const source = type;
+
+    queries.push(`
+      SELECT 
+        time,
+        '${source}' as source,
+        server,
+        username,
+        event_type as eventType,
+        level,
+        message,
+        details
+      FROM ${table}
+      WHERE server = $1
+      ${since ? `AND time > $${paramIndex++}` : ''}
+    `);
+
+    if (since) params.push(since);
+  }
+
+  if (queries.length === 0) return [];
+
+  const unionQuery = queries.join(' UNION ALL ') + ` ORDER BY time DESC LIMIT $${paramIndex}`;
+  params.push(limit);
+
+  try {
+    const result = await query<{
+      time: Date;
+      source: string;
+      server: string;
+      username: string | null;
+      eventType: string;
+      level: string | null;
+      message: string | null;
+      details: Record<string, unknown> | null;
+    }>(unionQuery, params);
+
+    return result.map(row => ({
+      id: `${row.source}-${row.time.getTime()}-${Math.random().toString(36).slice(2, 9)}`,
+      time: row.time,
+      source: row.source as UnifiedLogEntry['source'],
+      server: row.server,
+      username: row.username || undefined,
+      eventType: row.eventType,
+      level: (row.level === 'LOG' ? 'INFO' : row.level as 'INFO' | 'ERROR' | 'WARN' | 'DEBUG') || 'INFO',
+      message: row.message || '',
+      details: row.details || undefined,
+    }));
+  } catch (error) {
+    console.error('Failed to get unified logs since:', error);
+    return [];
+  }
+}
+
+// ============================================
 // STATISTICS
 // ============================================
 

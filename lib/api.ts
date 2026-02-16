@@ -512,3 +512,159 @@ export async function stopLogWatching(): Promise<{ message: string }> {
     body: JSON.stringify({ action: 'stop_watching' })
   });
 }
+
+// INI Configuration
+export interface IniConfig {
+  [key: string]: string;
+}
+
+export async function getServerConfig(serverName: string): Promise<IniConfig> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/config`);
+}
+
+export async function updateServerConfig(
+  serverName: string,
+  updates: Record<string, string>
+): Promise<IniConfig> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/config`, {
+    method: 'POST',
+    body: JSON.stringify({ updates })
+  });
+}
+
+export async function replaceServerConfig(
+  serverName: string,
+  config: IniConfig
+): Promise<IniConfig> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/config`, {
+    method: 'POST',
+    body: JSON.stringify({ config })
+  });
+}
+
+export async function resetServerConfig(serverName: string): Promise<{ message: string }> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/config`, {
+    method: 'DELETE'
+  });
+}
+
+// ============================================
+// SANDBOX VARS (Difficulty Settings)
+// ============================================
+
+export interface SandboxVars {
+  VERSION?: number;
+  Zombies?: number;
+  Distribution?: number;
+  DayLength?: number;
+  StartYear?: number;
+  StartMonth?: number;
+  StartDay?: number;
+  StartTime?: number;
+  WaterShut?: number;
+  ElecShut?: number;
+  WaterShutModifier?: number;
+  ElecShutModifier?: number;
+  FoodLoot?: number;
+  WeaponLoot?: number;
+  OtherLoot?: number;
+  Temperature?: number;
+  Rain?: number;
+  ErosionSpeed?: number;
+  XpMultiplier?: number;
+  Farming?: number;
+  StatsDecrease?: number;
+  NatureAbundance?: number;
+  Alarm?: number;
+  LockedHouses?: number;
+  StarterKit?: boolean;
+  Nutrition?: boolean;
+  FoodRotSpeed?: number;
+  FridgeFactor?: number;
+  LootRespawn?: number;
+  TimeSinceApo?: number;
+  PlantResilience?: number;
+  PlantAbundance?: number;
+  EndRegen?: number;
+  ZombieLore?: {
+    Speed?: number;
+    Strength?: number;
+    Toughness?: number;
+    Transmission?: number;
+    Mortality?: number;
+    Reanimate?: number;
+    Cognition?: number;
+    Memory?: number;
+    Decomp?: number;
+    Sight?: number;
+    Hearing?: number;
+    Smell?: number;
+    ThumpNoChasing?: boolean;
+    ThumpOnConstruction?: boolean;
+    ActiveOnly?: number;
+    TriggerHouseAlarm?: boolean;
+    ZombiesDragDown?: boolean;
+    ZombiesFenceLunge?: boolean;
+  };
+  ZombieConfig?: {
+    PopulationMultiplier?: number;
+    PopulationStartMultiplier?: number;
+    PopulationPeakMultiplier?: number;
+    PopulationPeakDay?: number;
+    RespawnHours?: number;
+    RespawnUnseenHours?: number;
+    RespawnMultiplier?: number;
+    RedistributeHours?: number;
+    FollowSoundDistance?: number;
+    RallyGroupSize?: number;
+    RallyTravelDistance?: number;
+    RallyGroupSeparation?: number;
+    RallyGroupRadius?: number;
+  };
+}
+
+export interface SandboxVarsResponse {
+  serverName: string;
+  config: SandboxVars;
+  filePath: string;
+}
+
+export async function getServerSandboxVars(serverName: string): Promise<SandboxVarsResponse> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/sandbox-vars`);
+}
+
+export async function updateServerSandboxVars(
+  serverName: string,
+  updates: Partial<SandboxVars>
+): Promise<SandboxVarsResponse> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/sandbox-vars`, {
+    method: 'POST',
+    body: JSON.stringify({ updates })
+  });
+}
+
+export async function replaceServerSandboxVars(
+  serverName: string,
+  config: SandboxVars
+): Promise<SandboxVarsResponse> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/sandbox-vars`, {
+    method: 'POST',
+    body: JSON.stringify({ config })
+  });
+}
+
+export async function applyDifficultyPreset(
+  serverName: string,
+  presetId: 'apocalypse' | 'survivor' | 'builder'
+): Promise<SandboxVarsResponse> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/sandbox-vars`, {
+    method: 'POST',
+    body: JSON.stringify({ applyPreset: presetId })
+  });
+}
+
+export async function resetServerSandboxVars(serverName: string): Promise<SandboxVarsResponse> {
+  return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/sandbox-vars`, {
+    method: 'DELETE'
+  });
+}
