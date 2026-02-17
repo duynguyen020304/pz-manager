@@ -31,17 +31,22 @@ export function ConsoleModal({ serverName, isOpen, onClose }: ConsoleModalProps)
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-card border border-border rounded-lg w-full max-w-6xl h-[80vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div
+        className="bg-card border border-border w-full h-[100dvh] sm:h-[90vh] md:h-[85vh] md:max-w-6xl sm:rounded-lg flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="console-title"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-3 border-b border-border shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
               <Maximize2 className="w-4 h-4 text-blue-500" />
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Server Console</h2>
-              <p className="text-xs text-muted-foreground">{serverName}</p>
+            <div className="min-w-0">
+              <h2 id="console-title" className="text-base sm:text-lg font-semibold text-foreground">Server Console</h2>
+              <p className="text-xs text-muted-foreground truncate">{serverName}</p>
             </div>
           </div>
           <button

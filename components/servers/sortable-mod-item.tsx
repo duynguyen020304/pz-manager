@@ -50,7 +50,7 @@ export function SortableModItem({ mod, onRemove, isRemoving }: SortableModItemPr
             #{mod.order + 1}
           </span>
           <span className="font-medium text-foreground truncate">
-            {mod.name}
+            {mod.name} ({mod.modId})
           </span>
           {!mod.isValid && (
             <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />

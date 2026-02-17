@@ -84,7 +84,7 @@ export function ModList({ mods, isLoading, initiallyExpanded = false }: ModListP
                     rel="noopener noreferrer"
                     className="flex items-center justify-between text-xs px-2 py-1 rounded bg-muted/50 hover:bg-muted transition-colors group"
                   >
-                    <span className="text-foreground truncate">{mod.name}</span>
+                    <span className="text-foreground truncate">{mod.name} ({mod.workshopId})</span>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <span className="text-[10px] text-muted-foreground font-mono">
                         {mod.workshopId}

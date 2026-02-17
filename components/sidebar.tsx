@@ -9,8 +9,6 @@ import {
   FileText,
   Settings,
   LogOut,
-  Menu,
-  X,
   ChevronLeft,
   ChevronRight,
   Shield,
@@ -19,7 +17,6 @@ import {
   UserCog,
   Activity
 } from 'lucide-react';
-import { useState } from 'react';
 import { logout } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/components/providers/sidebar-provider';
@@ -37,8 +34,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isCollapsed, toggle } = useSidebar();
+  const { isCollapsed, toggle, isMobileMenuOpen, setMobileMenuOpen } = useSidebar();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -52,21 +48,11 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 bg-card border border-border rounded-md text-foreground"
-        >
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </div>
-
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
@@ -108,7 +94,7 @@ export function Sidebar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => setMobileMenuOpen(false)}
                   title={isCollapsed ? item.name : undefined}
                   className={`flex items-center rounded-md transition-all duration-200 group relative min-h-[44px] ${
                     isCollapsed ? 'justify-center px-2' : 'justify-start gap-3 px-4'

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { Server as ServerType, ServerStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
@@ -17,7 +18,9 @@ import {
   Trash2,
   Loader2,
   Package,
-  Settings
+  Settings,
+  Menu,
+  X
 } from 'lucide-react';
 
 interface ServerCardProps {
@@ -44,12 +47,28 @@ export function ServerCard({
   onQuickConfig
 }: ServerCardProps) {
   const { data: mods, isLoading: isLoadingMods } = useServerMods(server.name);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   const isRunning = status?.state === 'running';
   const isStarting = status?.state === 'starting';
   const isStopping = status?.state === 'stopping';
   const isStopped = status?.state === 'stopped' || !status;
   const isLoading = isStarting || isStopping;
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDropdown]);
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-all duration-200">
@@ -96,8 +115,8 @@ export function ServerCard({
           </div>
         </div>
         
-        {/* Status Badge */}
-        <div className="flex-shrink-0">
+        {/* Status Badge and Menu */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {status ? (
             <ServerStatusBadge status={status} />
           ) : (
@@ -106,6 +125,89 @@ export function ServerCard({
               <span>Loading</span>
             </span>
           )}
+          
+          {/* Hamburger Menu Button */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="p-2 rounded-md hover:bg-muted transition-colors"
+              aria-label={showDropdown ? 'Close menu' : 'Open menu'}
+            >
+              {showDropdown ? (
+                <X className="w-5 h-5 text-foreground" />
+              ) : (
+                <Menu className="w-5 h-5 text-foreground" />
+              )}
+            </button>
+            
+            {/* Dropdown Menu */}
+            {showDropdown && (
+              <div className="absolute right-0 top-full mt-1 w-[200px] bg-card border border-border rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      onManageMods();
+                      setShowDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                  >
+                    <Package className="w-4 h-4 text-muted-foreground" />
+                    Manage Mods
+                  </button>
+                  
+                  {onQuickConfig && (
+                    <button
+                      onClick={() => {
+                        onQuickConfig();
+                        setShowDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Settings className="w-4 h-4 text-muted-foreground" />
+                      Configure Settings
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      onRollback();
+                      setShowDropdown(false);
+                    }}
+                    disabled={isRunning || isLoading}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RotateCcw className="w-4 h-4 text-muted-foreground" />
+                    Rollback Server
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      onConsole();
+                      setShowDropdown(false);
+                    }}
+                    disabled={!isRunning}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Terminal className="w-4 h-4 text-muted-foreground" />
+                    Open Console
+                  </button>
+                  
+                  <div className="border-t border-border my-1" />
+                  
+                  <button
+                    onClick={() => {
+                      onDelete();
+                      setShowDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Server
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -141,116 +243,32 @@ export function ServerCard({
         isLoading={isLoadingMods} 
       />
 
-      {/* Manage Mods Button */}
-      <Button
-        onClick={onManageMods}
-        variant="secondary"
-        size="sm"
-        className="w-full mt-2"
-        leftIcon={<Package className="w-4 h-4" />}
-      >
-        Manage Mods
-      </Button>
-
-      {/* Actions Grid - Responsive */}
+      {/* Start/Stop Button - Always Visible */}
       <div className="mt-3 pt-3 border-t border-border">
-        {/* Primary Action Row */}
-        <div className="flex gap-2 mb-2">
-          {(isStopped || isStarting) && (
-            <Button
-              onClick={onStart}
-              disabled={isStarting}
-              className="flex-1"
-              size="sm"
-              leftIcon={isStarting ? <Loader2 className="animate-spin" /> : <Play className="w-4 h-4" />}
-            >
-              {isStarting ? 'Starting...' : 'Start'}
-            </Button>
-          )}
-          
-          {(isRunning || isStopping) && (
-            <Button
-              onClick={onStop}
-              disabled={isStopping}
-              variant="destructive"
-              className="flex-1"
-              size="sm"
-              leftIcon={isStopping ? <Loader2 className="animate-spin" /> : <Power className="w-4 h-4" />}
-            >
-              {isStopping ? 'Stopping...' : 'Stop'}
-            </Button>
-          )}
-
-          {/* Quick Config Button */}
-          {onQuickConfig && (
-            <Button
-              onClick={onQuickConfig}
-              variant="secondary"
-              size="sm"
-              className="hidden sm:flex"
-              leftIcon={<Settings className="w-4 h-4" />}
-            >
-              Configure
-            </Button>
-          )}
-
-          {/* Secondary Actions - Icon buttons on mobile, text on larger screens */}
+        {(isStopped || isStarting) && (
           <Button
-            onClick={onRollback}
-            disabled={isRunning || isLoading}
-            variant="secondary"
+            onClick={onStart}
+            disabled={isStarting}
+            className="w-full"
             size="sm"
-            className="hidden sm:flex-1 sm:flex"
-            leftIcon={<RotateCcw className="w-4 h-4" />}
+            leftIcon={isStarting ? <Loader2 className="animate-spin" /> : <Play className="w-4 h-4" />}
           >
-            Rollback
+            {isStarting ? 'Starting...' : 'Start Server'}
           </Button>
-          
+        )}
+        
+        {(isRunning || isStopping) && (
           <Button
-            onClick={onConsole}
-            disabled={!isRunning}
-            variant="secondary"
+            onClick={onStop}
+            disabled={isStopping}
+            variant="destructive"
+            className="w-full"
             size="sm"
-            className="hidden sm:flex-1 sm:flex"
-            leftIcon={<Terminal className="w-4 h-4" />}
+            leftIcon={isStopping ? <Loader2 className="animate-spin" /> : <Power className="w-4 h-4" />}
           >
-            Console
+            {isStopping ? 'Stopping...' : 'Stop Server'}
           </Button>
-
-          {/* Delete - Icon only */}
-          <Button
-            onClick={onDelete}
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            leftIcon={<Trash2 className="w-4 h-4" />}
-          />
-        </div>
-
-        {/* Mobile Secondary Actions */}
-        <div className="flex gap-2 sm:hidden">
-          {onQuickConfig && (
-            <Button
-              onClick={onQuickConfig}
-              variant="secondary"
-              size="sm"
-              className="flex-1"
-              leftIcon={<Settings className="w-4 h-4" />}
-            >
-              Configure
-            </Button>
-          )}
-          <Button
-            onClick={onRollback}
-            disabled={isRunning || isLoading}
-            variant="secondary"
-            size="sm"
-            className="flex-1"
-            leftIcon={<RotateCcw className="w-4 h-4" />}
-          >
-            Rollback
-          </Button>
-        </div>
+        )}
       </div>
     </div>
   );

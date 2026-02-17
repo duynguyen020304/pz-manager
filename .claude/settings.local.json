@@ -80,7 +80,10 @@
       "Bash(bash /root/zomboid-web-manager/scripts/backup/restore.sh servertest /root/Zomboid/backup-system/snapshots/30min/servertest/20260215_133155)",
       "Bash(bash /root/zomboid-web-manager/scripts/backup/restore.sh servertest /root/Zomboid/backup-system/snapshots/30min/servertest/20260215_141742)",
       "Bash(# Check what's in the /root/Zomboid/backups directory:*)",
-      "Bash(bash /root/zomboid-web-manager/scripts/backup/restore.sh servertest /opt/zomboid-backups/snapshots/30min/servertest/20260215_143409)"
+      "Bash(bash /root/zomboid-web-manager/scripts/backup/restore.sh servertest /opt/zomboid-backups/snapshots/30min/servertest/20260215_143409)",
+      "Bash(sudo:*)",
+      "Bash(/dev/null:*)",
+      "Bash(jq:*)"
     ]
   }
 }

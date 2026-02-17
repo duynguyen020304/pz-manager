@@ -3,7 +3,7 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { fileExists } from './file-utils';
-import { ZOMBOID_PATH, STEAM_CMD_PATH, getServerIniPath } from '@/lib/paths';
+import { ZOMBOID_PATH, STEAM_CMD_PATH, getServerIniPath, SERVER_CACHE_DIR, SERVER_WORKSHOP_PATH } from '@/lib/paths';
 import type { ServerModsConfig, ServerMod, ModEntry, ValidationResult } from '@/types/index.js';
 
 const execAsync = promisify(exec);
@@ -133,7 +133,9 @@ export async function getServerModSummary(serverName: string): Promise<{
 }
 
 /**
- * Get global workshop mod directory path (steamcmd download location)
+ * DEPRECATED: Global workshop path is no longer used
+ * Mods are now downloaded per-server using CACHEDIR isolation
+ * @deprecated Use SERVER_WORKSHOP_PATH(serverName) instead
  */
 function getGlobalWorkshopDir(workshopId: string): string {
   return path.join(ZOMBOID_PATH, 'steamapps', 'workshop', 'content', STEAM_APP_ID, workshopId);
@@ -142,27 +144,69 @@ function getGlobalWorkshopDir(workshopId: string): string {
 
 /**
  * Download a mod from Steam Workshop using steamcmd
- * Downloads to global Steam workshop location (steamcmd limitation)
+ * Downloads directly to the server's CACHEDIR workshop directory
+ * Uses +force_install_dir to ensure mods go to the correct server-specific location
  */
 export async function downloadMod(serverName: string, workshopId: string): Promise<string> {
-  const globalWorkshopDir = getGlobalWorkshopDir(workshopId);
+  const serverWorkshopDir = path.join(SERVER_WORKSHOP_PATH(serverName), workshopId);
 
-  if (await fileExists(globalWorkshopDir)) {
-    console.log(`Mod ${workshopId} already downloaded`);
-    return globalWorkshopDir;
+  // Check if mod already exists in server's workshop directory
+  if (await fileExists(serverWorkshopDir)) {
+    console.log(`Mod ${workshopId} already downloaded for server ${serverName}`);
+    return serverWorkshopDir;
   }
 
-  console.log(`Downloading mod ${workshopId} via steamcmd...`);
+  // Check if mod exists in old global location - migrate it automatically
+  const globalWorkshopDir = getGlobalWorkshopDir(workshopId);
+  if (await fileExists(globalWorkshopDir)) {
+    console.log(`Migrating mod ${workshopId} from global location to server ${serverName}`);
+    try {
+      // Ensure server's workshop directory exists
+      await fs.mkdir(SERVER_WORKSHOP_PATH(serverName), { recursive: true });
+      // Copy mod from global to server-specific location
+      await copyDirectory(globalWorkshopDir, serverWorkshopDir);
+      console.log(`Successfully migrated mod ${workshopId} to server ${serverName}`);
+      return serverWorkshopDir;
+    } catch (error) {
+      console.error(`Failed to migrate mod ${workshopId}:`, error);
+      // Fall through to download if migration fails
+    }
+  }
 
-  const cmd = `${STEAM_CMD_PATH} +login anonymous +workshop_download_item ${STEAM_APP_ID} ${workshopId} +quit`;
+  // Ensure server's workshop directory exists
+  await fs.mkdir(SERVER_WORKSHOP_PATH(serverName), { recursive: true });
+
+  console.log(`Downloading mod ${workshopId} for server ${serverName} via steamcmd...`);
+
+  // Use +force_install_dir to download directly to server's CACHEDIR
+  const cmd = `${STEAM_CMD_PATH} +login anonymous +force_install_dir ${SERVER_CACHE_DIR(serverName)} +workshop_download_item ${STEAM_APP_ID} ${workshopId} +quit`;
 
   try {
     await execAsync(cmd, { timeout: 300000 });
-    console.log(`Successfully downloaded mod ${workshopId}`);
-    return globalWorkshopDir;
+    console.log(`Successfully downloaded mod ${workshopId} for server ${serverName}`);
+    return serverWorkshopDir;
   } catch (error) {
-    console.error(`Failed to download mod ${workshopId}:`, error);
+    console.error(`Failed to download mod ${workshopId} for server ${serverName}:`, error);
     throw new Error(`Failed to download mod from Steam Workshop. Please check the URL and try again.`);
+  }
+}
+
+/**
+ * Copy a directory recursively (used for migrating mods from global to server-specific location)
+ */
+async function copyDirectory(src: string, dest: string): Promise<void> {
+  await fs.mkdir(dest, { recursive: true });
+  const entries = await fs.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDirectory(srcPath, destPath);
+    } else {
+      await fs.copyFile(srcPath, destPath);
+    }
   }
 }
 
@@ -362,7 +406,11 @@ export async function removeModFromServer(serverName: string, workshopId: string
   const workshopMatch = content.match(/^WorkshopItems=(.*)$/m);
   if (workshopMatch) {
     const items = workshopMatch[1].split(';').map(item => item.trim()).filter(Boolean);
-    const filteredItems = items.filter(item => !item.startsWith(`${workshopId}=`));
+    // Filter out workshop ID - handle both formats: "id" and "id=name"
+    const filteredItems = items.filter(item => {
+      const itemId = item.includes('=') ? item.split('=')[0].trim() : item.trim();
+      return itemId !== workshopId;
+    });
     const newWorkshopItems = filteredItems.join(';');
     newContent = newContent.replace(/^WorkshopItems=.*$/m, `WorkshopItems=${newWorkshopItems}`);
   }
@@ -372,13 +420,25 @@ export async function removeModFromServer(serverName: string, workshopId: string
     const mods = modsMatch[1].split(',').map(m => m.trim()).filter(Boolean);
     
     const modsConfig = await getServerMods(serverName);
-    const modToRemove = modsConfig.workshopItems.find(w => w.workshopId === workshopId);
-    const filteredMods = mods.filter(m => m !== modToRemove?.name);
+    const modIndex = modsConfig.workshopItems.findIndex(w => w.workshopId === workshopId);
+    const modIdToRemove = modIndex >= 0 ? modsConfig.mods[modIndex] : null;
+    const filteredMods = mods.filter(m => m !== modIdToRemove);
     const newMods = filteredMods.join(',');
     newContent = newContent.replace(/^Mods=.*$/m, `Mods=${newMods}`);
   }
   
   await fs.writeFile(iniPath, newContent, 'utf-8');
+  
+  const workshopPath = SERVER_WORKSHOP_PATH(serverName);
+  const modWorkshopDir = path.join(workshopPath, workshopId);
+  try {
+    if (await fileExists(modWorkshopDir)) {
+      await fs.rm(modWorkshopDir, { recursive: true, force: true });
+      console.log(`Deleted workshop files for mod ${workshopId} at ${modWorkshopDir}`);
+    }
+  } catch (error) {
+    console.error(`Failed to delete workshop files for mod ${workshopId}:`, error);
+  }
 }
 
 /**
