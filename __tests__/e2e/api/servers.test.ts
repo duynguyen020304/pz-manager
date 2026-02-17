@@ -1,12 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { GET, POST, DELETE } from '@/app/api/servers/route';
-import { createAuthenticatedRequest, cleanupTestUsers, createTestUser, createTestSession } from '../helpers/auth';
+import { createAuthenticatedRequest } from '../helpers/auth';
 import { mockTmux } from '../mocks/tmux';
 import { mockProcesses } from '../mocks/processes';
 import { setupMockServerFileSystem } from '../mocks';
 import mockFs from 'mock-fs';
 import fs from 'fs/promises';
-import path from 'path';
 
 describe('/api/servers', () => {
   beforeEach(async () => {
@@ -86,7 +85,7 @@ describe('/api/servers', () => {
     it('should reject unauthenticated requests', async () => {
       const request = new Request('http://localhost:3000/api/servers');
       
-      const response = await GET(request as any);
+      const response = await GET(request as unknown as Parameters<typeof GET>[0]);
       const data = await response.json();
       
       expect(response.status).toBe(500);

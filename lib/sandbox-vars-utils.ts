@@ -261,20 +261,23 @@ function convertLegacyArrayToObject(obj: Record<string, unknown>): void {
 
 export function parseSandboxVars(content: string): SandboxVars {
   const cleanContent = stripComments(content);
+  const tableStartIndex = cleanContent.indexOf('{');
 
-  const returnMatch = cleanContent.match(/return\s*\{/);
-  let parseStart = 0;
-
-  if (returnMatch) {
-    parseStart = returnMatch.index! + returnMatch[0].length - 1;
+  if (tableStartIndex === -1) {
+    return {} as SandboxVars;
   }
 
-  const { value } = parseTable(cleanContent, parseStart);
+  const { value } = parseTable(cleanContent, tableStartIndex);
 
   if (value && typeof value === 'object' && !Array.isArray(value)) {
-    const obj = value as Record<string, unknown>;
-    convertLegacyArrayToObject(obj);
-    return obj as unknown as SandboxVars;
+    const parsedObject = value as Record<string, unknown>;
+
+    const sandboxVars = parsedObject.SandboxVars && typeof parsedObject.SandboxVars === 'object'
+      ? parsedObject.SandboxVars as Record<string, unknown>
+      : parsedObject;
+
+    convertLegacyArrayToObject(sandboxVars);
+    return sandboxVars as unknown as SandboxVars;
   }
 
   return {} as SandboxVars;
@@ -379,6 +382,29 @@ export function generateSandboxVarsContent(config: SandboxVars): string {
     for (const key of configKeys) {
       if (key in config.ZombieConfig) {
         const value = (config.ZombieConfig as Record<string, unknown>)[key];
+        if (value !== undefined) {
+          lines.push(`            ${key} = ${formatValue(value, 2)},`);
+        }
+      }
+    }
+    lines.push('        },');
+  }
+
+  if (config.MultiplierConfig) {
+    lines.push('        MultiplierConfig = {');
+    const multiplierKeys = [
+      'Global', 'GlobalToggle', 'Fitness', 'Strength', 'Sprinting',
+      'Lightfoot', 'Nimble', 'Sneak', 'Axe', 'Blunt', 'SmallBlunt',
+      'LongBlade', 'SmallBlade', 'Spear', 'Maintenance', 'Woodwork',
+      'Cooking', 'Farming', 'Doctor', 'Electricity', 'MetalWelding',
+      'Mechanics', 'Tailoring', 'Aiming', 'Reloading', 'Fishing',
+      'Trapping', 'PlantScavenging', 'FlintKnapping', 'Masonry', 'Pottery',
+      'Carving', 'Husbandry', 'Tracking', 'Blacksmith', 'Butchering',
+      'Glassmaking'
+    ];
+    for (const key of multiplierKeys) {
+      if (key in config.MultiplierConfig) {
+        const value = (config.MultiplierConfig as Record<string, unknown>)[key];
         if (value !== undefined) {
           lines.push(`            ${key} = ${formatValue(value, 2)},`);
         }

@@ -10,7 +10,7 @@ beforeAll(async () => {
   // Mock shelljs module
   vi.mock('shelljs', () => ({
     default: {
-      exec: vi.fn((command: string, options?: any, callback?: any) => {
+      exec: vi.fn((_command: string, _options?: unknown, callback?: (code: number, stdout: string, stderr: string) => void) => {
         // Default success response
         if (callback) callback(0, '', '');
         return { code: 0, stdout: '', stderr: '' };

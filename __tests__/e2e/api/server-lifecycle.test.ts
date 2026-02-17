@@ -1,15 +1,16 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { POST as startServer } from '@/app/api/servers/[name]/start/route';
 import { POST as stopServer } from '@/app/api/servers/[name]/stop/route';
 import { POST as abortServer } from '@/app/api/servers/[name]/abort/route';
 import { GET as getServerStatus } from '@/app/api/servers/[name]/status/route';
 import { GET as getAllServerStatus } from '@/app/api/servers/status/route';
-import { createAuthenticatedRequest, cleanupTestUsers } from '../helpers/auth';
+import { createAuthenticatedRequest } from '../helpers/auth';
+import type { ServerStatus } from '@/types';
 import { mockTmux } from '../mocks/tmux';
 import { mockProcesses } from '../mocks/processes';
 import mockFs from 'mock-fs';
 import fs from 'fs/promises';
-import { addServer, getServers } from '@/lib/config-manager';
+
 
 describe('Server Lifecycle Operations', () => {
   beforeEach(async () => {
@@ -65,7 +66,6 @@ describe('Server Lifecycle Operations', () => {
 
     it('should reject starting already running server', async () => {
       // Mock server as running
-      const mockPid = 12345;
       mockProcesses.addProcess({
         name: 'java',
         command: `ProjectZomboid64 -servername test-server`,
@@ -198,7 +198,6 @@ describe('Server Lifecycle Operations', () => {
 
     it('should return running status with details for running server', async () => {
       // Mock server as running
-      const mockPid = 12345;
       mockProcesses.addProcess({
         name: 'java',
         command: `ProjectZomboid64 -servername test-server`,
@@ -250,12 +249,12 @@ describe('Server Lifecycle Operations', () => {
       expect(data.data).toHaveLength(3);
       
       // Check that server-2 is marked as running
-      const server2 = data.data.find((s: any) => s.name === 'server-2');
-      expect(server2.state).toBe('running');
+      const server2 = data.data.find((s: ServerStatus) => s.name === 'server-2');
+      expect(server2?.state).toBe('running');
       
       // Others should be stopped
-      const server1 = data.data.find((s: any) => s.name === 'server-1');
-      expect(server1.state).toBe('stopped');
+      const server1 = data.data.find((s: ServerStatus) => s.name === 'server-1');
+      expect(server1?.state).toBe('stopped');
     });
   });
 });

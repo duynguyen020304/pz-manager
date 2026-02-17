@@ -1,7 +1,5 @@
-import { vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { query, queryOne } from '@/lib/db';
-import { createSession, setSessionCookie, getCurrentUser } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import type { UserWithRole } from '@/types';
 

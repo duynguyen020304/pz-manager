@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { X, Search, Save, RotateCcw, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Search, Save, RotateCcw, AlertCircle, Loader2, ChevronLeft } from 'lucide-react';
 import { DynamicIniInput } from './dynamic-ini-input';
 
 interface AdvancedSettingsDrawerProps {
@@ -11,6 +11,7 @@ interface AdvancedSettingsDrawerProps {
   config: Record<string, string>;
   onSave: (config: Record<string, string>) => Promise<void>;
   onReset?: () => Promise<void>;
+  onBack?: () => void;
   isLoading?: boolean;
 }
 
@@ -21,6 +22,7 @@ export function AdvancedSettingsDrawer({
   config,
   onSave,
   onReset,
+  onBack,
   isLoading = false,
 }: AdvancedSettingsDrawerProps) {
   const [localConfig, setLocalConfig] = useState(config);
@@ -101,9 +103,20 @@ export function AdvancedSettingsDrawer({
       <div className="fixed inset-y-0 right-0 w-full lg:w-[600px] xl:w-[700px] bg-card border-l border-border z-50 shadow-2xl animate-slide-in-right flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Advanced Settings</h2>
-            <p className="text-sm text-muted-foreground">Server: {serverName}</p>
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+                aria-label="Back"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Advanced Settings</h2>
+              <p className="text-sm text-muted-foreground">Server: {serverName}</p>
+            </div>
           </div>
           <button
             onClick={handleClose}

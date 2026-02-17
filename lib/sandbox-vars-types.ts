@@ -1,22 +1,33 @@
 export interface ZombieLore {
   Speed?: number;
+  SprinterPercentage?: number;
   Strength?: number;
   Toughness?: number;
   Transmission?: number;
   Mortality?: number;
   Reanimate?: number;
   Cognition?: number;
+  CrawlUnderVehicle?: number;
   Memory?: number;
-  Decomp?: number;
   Sight?: number;
   Hearing?: number;
   Smell?: number;
+  SpottedLogic?: boolean;
   ThumpNoChasing?: boolean;
   ThumpOnConstruction?: boolean;
   ActiveOnly?: number;
   TriggerHouseAlarm?: boolean;
   ZombiesDragDown?: boolean;
+  ZombiesCrawlersDragDown?: boolean;
   ZombiesFenceLunge?: boolean;
+  ZombiesArmorFactor?: number;
+  ZombiesMaxDefense?: number;
+  ChanceOfAttachedWeapon?: number;
+  ZombiesFallDamage?: number;
+  DisableFakeDead?: number;
+  PlayerSpawnZombieRemoval?: number;
+  FenceThumpersRequired?: number;
+  FenceDamageMultiplier?: number;
 }
 
 export interface ZombieConfig {
@@ -30,9 +41,51 @@ export interface ZombieConfig {
   RedistributeHours?: number;
   FollowSoundDistance?: number;
   RallyGroupSize?: number;
+  RallyGroupSizeVariance?: number;
   RallyTravelDistance?: number;
   RallyGroupSeparation?: number;
   RallyGroupRadius?: number;
+  ZombiesCountBeforeDelete?: number;
+}
+
+export interface MultiplierConfig {
+  Global?: number;
+  GlobalToggle?: boolean;
+  Fitness?: number;
+  Strength?: number;
+  Sprinting?: number;
+  Lightfoot?: number;
+  Nimble?: number;
+  Sneak?: number;
+  Axe?: number;
+  Blunt?: number;
+  SmallBlunt?: number;
+  LongBlade?: number;
+  SmallBlade?: number;
+  Spear?: number;
+  Maintenance?: number;
+  Woodwork?: number;
+  Cooking?: number;
+  Farming?: number;
+  Doctor?: number;
+  Electricity?: number;
+  MetalWelding?: number;
+  Mechanics?: number;
+  Tailoring?: number;
+  Aiming?: number;
+  Reloading?: number;
+  Fishing?: number;
+  Trapping?: number;
+  PlantScavenging?: number;
+  FlintKnapping?: number;
+  Masonry?: number;
+  Pottery?: number;
+  Carving?: number;
+  Husbandry?: number;
+  Tracking?: number;
+  Blacksmith?: number;
+  Butchering?: number;
+  Glassmaking?: number;
 }
 
 export interface SandboxVars {
@@ -44,18 +97,51 @@ export interface SandboxVars {
   StartMonth?: number;
   StartDay?: number;
   StartTime?: number;
+  DayNightCycle?: number;
+  ClimateCycle?: number;
+  FogCycle?: number;
   WaterShut?: number;
   ElecShut?: number;
+  AlarmDecay?: number;
   WaterShutModifier?: number;
   ElecShutModifier?: number;
-  FoodLoot?: number;
-  WeaponLoot?: number;
-  OtherLoot?: number;
+  AlarmDecayModifier?: number;
+  FoodLootNew?: number;
+  LiteratureLootNew?: number;
+  MedicalLootNew?: number;
+  SurvivalGearsLootNew?: number;
+  CannedFoodLootNew?: number;
+  WeaponLootNew?: number;
+  RangedWeaponLootNew?: number;
+  AmmoLootNew?: number;
+  MechanicsLootNew?: number;
+  OtherLootNew?: number;
+  ClothingLootNew?: number;
+  ContainerLootNew?: number;
+  KeyLootNew?: number;
+  MediaLootNew?: number;
+  MementoLootNew?: number;
+  CookwareLootNew?: number;
+  MaterialLootNew?: number;
+  FarmingLootNew?: number;
+  ToolLootNew?: number;
+  RollsMultiplier?: number;
+  LootItemRemovalList?: string;
+  RemoveStoryLoot?: boolean;
+  RemoveZombieLoot?: boolean;
+  ZombiePopLootEffect?: number;
+  InsaneLootFactor?: number;
+  ExtremeLootFactor?: number;
+  RareLootFactor?: number;
+  NormalLootFactor?: number;
+  CommonLootFactor?: number;
+  AbundantLootFactor?: number;
   Temperature?: number;
   Rain?: number;
   ErosionSpeed?: number;
-  XpMultiplier?: number;
+  ErosionDays?: number;
   Farming?: number;
+  CompostTime?: number;
   StatsDecrease?: number;
   NatureAbundance?: number;
   Alarm?: number;
@@ -64,13 +150,132 @@ export interface SandboxVars {
   Nutrition?: boolean;
   FoodRotSpeed?: number;
   FridgeFactor?: number;
-  LootRespawn?: number;
+  SeenHoursPreventLootRespawn?: number;
+  HoursForLootRespawn?: number;
+  MaxItemsForLootRespawn?: number;
+  ConstructionPreventsLootRespawn?: boolean;
+  WorldItemRemovalList?: string;
+  HoursForWorldItemRemoval?: number;
+  ItemRemovalListBlacklistToggle?: boolean;
   TimeSinceApo?: number;
   PlantResilience?: number;
   PlantAbundance?: number;
   EndRegen?: number;
+  Helicopter?: number;
+  MetaEvent?: number;
+  SleepingEvent?: number;
+  GeneratorFuelConsumption?: number;
+  GeneratorSpawning?: number;
+  AnnotatedMapChance?: number;
+  CharacterFreePoints?: number;
+  ConstructionBonusPoints?: number;
+  NightDarkness?: number;
+  NightLength?: number;
+  BoneFracture?: boolean;
+  InjurySeverity?: number;
+  HoursForCorpseRemoval?: number;
+  DecayingCorpseHealthImpact?: number;
+  ZombieHealthImpact?: boolean;
+  BloodLevel?: number;
+  ClothingDegradation?: number;
+  FireSpread?: boolean;
+  DaysForRottenFoodRemoval?: number;
+  AllowExteriorGenerator?: boolean;
+  MaxFogIntensity?: number;
+  MaxRainFxIntensity?: number;
+  EnableSnowOnGround?: boolean;
+  AttackBlockMovements?: boolean;
+  SurvivorHouseChance?: number;
+  VehicleStoryChance?: number;
+  ZoneStoryChance?: number;
+  AllClothesUnlocked?: boolean;
+  EnableTaintedWaterText?: boolean;
+  EnableVehicles?: boolean;
+  CarSpawnRate?: number;
+  ZombieAttractionMultiplier?: number;
+  VehicleEasyUse?: boolean;
+  InitialGas?: number;
+  FuelStationGasInfinite?: boolean;
+  FuelStationGasMin?: number;
+  FuelStationGasMax?: number;
+  FuelStationGasEmptyChance?: number;
+  LockedCar?: number;
+  CarGasConsumption?: number;
+  CarGeneralCondition?: number;
+  CarDamageOnImpact?: number;
+  DamageToPlayerFromHitByACar?: number;
+  TrafficJam?: boolean;
+  CarAlarm?: number;
+  PlayerDamageFromCrash?: boolean;
+  SirenShutoffHours?: number;
+  ChanceHasGas?: number;
+  RecentlySurvivorVehicles?: number;
+  MultiHitZombies?: boolean;
+  RearVulnerability?: number;
+  SirenEffectsZombies?: boolean;
+  AnimalStatsModifier?: number;
+  AnimalMetaStatsModifier?: number;
+  AnimalPregnancyTime?: number;
+  AnimalAgeModifier?: number;
+  AnimalMilkIncModifier?: number;
+  AnimalWoolIncModifier?: number;
+  AnimalRanchChance?: number;
+  AnimalGrassRegrowTime?: number;
+  AnimalMetaPredator?: boolean;
+  AnimalMatingSeason?: boolean;
+  AnimalEggHatch?: number;
+  AnimalSoundAttractZombies?: boolean;
+  AnimalTrackChance?: number;
+  AnimalPathChance?: number;
+  MaximumRatIndex?: number;
+  DaysUntilMaximumRatIndex?: number;
+  MetaKnowledge?: number;
+  SeeNotLearntRecipe?: boolean;
+  MaximumLootedBuildingRooms?: number;
+  EnablePoisoning?: number;
+  MaggotSpawn?: number;
+  LightBulbLifespan?: number;
+  FishAbundance?: number;
+  LevelForMediaXPCutoff?: number;
+  LevelForDismantleXPCutoff?: number;
+  BloodSplatLifespanDays?: number;
+  LiteratureCooldown?: number;
+  NegativeTraitsPenalty?: number;
+  MinutesPerPage?: number;
+  KillInsideCrops?: boolean;
+  PlantGrowingSeasons?: boolean;
+  PlaceDirtAboveground?: boolean;
+  FarmingSpeedNew?: number;
+  FarmingAmountNew?: number;
+  MaximumLooted?: number;
+  DaysUntilMaximumLooted?: number;
+  RuralLooted?: number;
+  MaximumDiminishedLoot?: number;
+  DaysUntilMaximumDiminishedLoot?: number;
+  MuscleStrainFactor?: number;
+  DiscomfortFactor?: number;
+  WoundInfectionFactor?: number;
+  NoBlackClothes?: boolean;
+  EasyClimbing?: boolean;
+  MaximumFireFuelHours?: number;
+  FirearmUseDamageChance?: boolean;
+  FirearmNoiseMultiplier?: number;
+  FirearmJamMultiplier?: number;
+  FirearmMoodleMultiplier?: number;
+  FirearmWeatherMultiplier?: number;
+  FirearmHeadGearEffect?: boolean;
+  ClayLakeChance?: number;
+  ClayRiverChance?: number;
+  GeneratorTileRange?: number;
+  GeneratorVerticalPowerRange?: number;
+  ZombieVoronoiNoise?: boolean;
+  ZombieRespawn?: number;
+  ZombieMigrate?: boolean;
   ZombieLore?: ZombieLore;
   ZombieConfig?: ZombieConfig;
+  MultiplierConfig?: MultiplierConfig;
+  Map?: { AllowMiniMap?: boolean; AllowWorldMap?: boolean; MapAllKnown?: boolean; MapNeedsLight?: boolean };
+  Basement?: { SpawnFrequency?: number };
 }
 
 export type DifficultyPresetId = 'apocalypse' | 'survivor' | 'builder' | 'custom';
@@ -103,6 +308,7 @@ export type OptionCategory =
   | 'character'
   | 'zombie_lore'
   | 'zombie_config'
+  | 'multiplier_config'
   | 'meta'
   | 'loot'
   | 'vehicle';
@@ -134,13 +340,9 @@ export function createDefaultSandboxVars(): SandboxVars {
     ElecShut: 2,
     WaterShutModifier: 500,
     ElecShutModifier: 480,
-    FoodLoot: 4,
-    WeaponLoot: 2,
-    OtherLoot: 3,
     Temperature: 3,
     Rain: 3,
     ErosionSpeed: 5,
-    XpMultiplier: 1.0,
     Farming: 3,
     StatsDecrease: 4,
     NatureAbundance: 3,
@@ -150,7 +352,6 @@ export function createDefaultSandboxVars(): SandboxVars {
     Nutrition: true,
     FoodRotSpeed: 5,
     FridgeFactor: 5,
-    LootRespawn: 2,
     TimeSinceApo: 1,
     PlantResilience: 3,
     PlantAbundance: 3,
@@ -164,10 +365,9 @@ export function createDefaultSandboxVars(): SandboxVars {
       Reanimate: 1,
       Cognition: 3,
       Memory: 2,
-      Decomp: 1,
       Sight: 2,
       Hearing: 2,
-      Smell: 2,
+      SpottedLogic: true,
       ThumpNoChasing: true,
       ThumpOnConstruction: true,
       ActiveOnly: 1,

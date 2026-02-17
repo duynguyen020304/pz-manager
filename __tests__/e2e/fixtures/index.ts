@@ -1,5 +1,3 @@
-import { Server } from '@/types';
-
 export const serverFixtures = {
   validServer: {
     name: 'test-server-1',

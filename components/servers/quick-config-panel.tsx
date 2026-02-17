@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Globe, Swords, Home, Package, Settings2, Loader2, Save, ChevronRight, Skull, AlertTriangle, Shield, Hammer, Apple } from 'lucide-react';
 import { RamSlider } from '@/components/ui/ram-slider';
 import { StepperControl } from '@/components/ui/stepper-control';
@@ -86,6 +86,24 @@ export function QuickConfigPanel({
   const [sandboxConfig, setSandboxConfig] = useState<SandboxQuickConfig>(initialSandboxConfig || DEFAULT_SANDBOX_CONFIG);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    if (initialConfig) {
+      setConfig(initialConfig);
+    }
+  }, [initialConfig]);
+
+  useEffect(() => {
+    if (initialSandboxConfig) {
+      setSandboxConfig(initialSandboxConfig);
+    }
+  }, [initialSandboxConfig]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setHasChanges(false);
+    }
+  }, [isOpen]);
 
   const handleChange = (updates: Partial<QuickConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));
@@ -307,18 +325,18 @@ export function QuickConfigPanel({
           {/* Advanced Settings Link */}
           <button
             onClick={onOpenAdvanced}
-            className="w-full flex items-center justify-between p-4 border border-border rounded-lg hover:border-primary/30 hover:bg-muted/30 transition-all group"
+            className="w-full flex items-center justify-between p-3 border border-border rounded-lg hover:border-primary/30 hover:bg-muted/30 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Settings2 className="w-5 h-5 text-primary" />
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Settings2 className="w-4 h-4 text-primary" />
               </div>
               <div className="text-left">
-                <div className="font-medium text-foreground">Advanced Settings</div>
-                <div className="text-sm text-muted-foreground">Configure all 80+ options</div>
+                <div className="font-medium text-sm text-foreground">Advanced Settings</div>
+                <div className="text-xs text-muted-foreground">Configure all 80+ options</div>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>
         </div>
 

@@ -392,6 +392,10 @@ export default function ServersPage() {
           serverName={serverForSandboxEditor}
           isOpen={true}
           onClose={() => setServerForSandboxEditor(null)}
+          onBack={() => {
+            setServerForQuickConfig(serverForSandboxEditor);
+            setServerForSandboxEditor(null);
+          }}
         />
       )}
 
@@ -404,6 +408,10 @@ export default function ServersPage() {
           config={serverConfig || {}}
           onSave={handleSaveAdvancedConfig}
           onReset={handleResetConfig}
+          onBack={() => {
+            setServerForQuickConfig(serverForAdvancedConfig);
+            setServerForAdvancedConfig(null);
+          }}
           isLoading={isLoadingConfig}
         />
       )}

@@ -343,7 +343,7 @@ export interface BackupLogEntry {
 export interface PZPlayerEvent {
   time: Date;
   server: string;
-  eventType: 'login' | 'logout' | 'chat' | 'death' | 'combat' | 'vehicle_enter' | 'vehicle_exit' | 'admin_command';
+  eventType: 'login_success' | 'logout' | 'chat' | 'death' | 'combat' | 'vehicle_enter' | 'vehicle_exit' | 'admin_command';
   username?: string;
   ipAddress?: string;
   details?: Record<string, unknown>;

@@ -15,7 +15,8 @@ import {
   User,
   Users,
   UserCog,
-  Activity
+  Activity,
+  X
 } from 'lucide-react';
 import { logout } from '@/lib/api';
 import { useRouter } from 'next/navigation';
@@ -36,6 +37,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const { isCollapsed, toggle, isMobileMenuOpen, setMobileMenuOpen } = useSidebar();
   const router = useRouter();
+
+  const shouldShowCollapsed = !isMobileMenuOpen && isCollapsed;
 
   const handleLogout = async () => {
     try {
@@ -59,27 +62,38 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`inset-y-0 left-0 z-50 bg-card border-r border-border transition-all duration-300 ease-in-out shrink-0 ${
-          isCollapsed ? 'w-16' : 'w-60'
+          shouldShowCollapsed ? 'w-16' : 'w-60'
         } static translate-x-0 max-lg:fixed max-lg:-translate-x-full ${
           isMobileMenuOpen ? '!translate-x-0' : ''
         }`}
       >
         <div className="h-full flex flex-col">
           {/* Logo */}
-          <div className={`p-3 border-b border-border transition-all duration-300 ${isCollapsed ? 'px-3' : 'px-6'}`}>
-            <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                <Shield className="w-5 h-5 text-primary-foreground" />
-              </div>
-              {!isCollapsed && (
-                <div>
-                  <h1 className="text-lg font-bold text-foreground leading-tight">
-                    Zomboid
-                  </h1>
-                  <p className="text-[10px] text-muted-foreground">
-                    Backup Manager
-                  </p>
+          <div className={`p-3 border-b border-border transition-all duration-300 ${shouldShowCollapsed ? 'px-3' : 'px-6'}`}>
+            <div className={`flex items-center ${shouldShowCollapsed ? 'justify-center' : 'justify-between'}`}>
+              <div className={`flex items-center gap-3 ${shouldShowCollapsed ? 'justify-center' : ''}`}>
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-5 h-5 text-primary-foreground" />
                 </div>
+                {!shouldShowCollapsed && (
+                  <div>
+                    <h1 className="text-lg font-bold text-foreground leading-tight">
+                      Zomboid
+                    </h1>
+                    <p className="text-[10px] text-muted-foreground">
+                      Backup Manager
+                    </p>
+                  </div>
+                )}
+              </div>
+              {isMobileMenuOpen && (
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="lg:hidden p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Close sidebar"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               )}
             </div>
           </div>
@@ -95,20 +109,20 @@ export function Sidebar() {
                   key={item.name}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  title={isCollapsed ? item.name : undefined}
+                  title={shouldShowCollapsed ? item.name : undefined}
                   className={`flex items-center rounded-md transition-all duration-200 group relative min-h-[44px] ${
-                    isCollapsed ? 'justify-center px-2' : 'justify-start gap-3 px-4'
+                    shouldShowCollapsed ? 'justify-center px-2' : 'justify-start gap-3 px-4'
                   } ${
-                    isActive 
-                      ? 'bg-primary/10 text-primary border border-primary/20' 
+                    isActive
+                      ? 'bg-primary/10 text-primary border border-primary/20'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
                   }`}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
-                  {!isCollapsed && (
+                  {!shouldShowCollapsed && (
                     <span className="font-medium text-sm leading-none">{item.name}</span>
                   )}
-                  {isCollapsed && (
+                  {shouldShowCollapsed && (
                     <div className="absolute left-full ml-2 px-2 py-1 bg-card border border-border rounded-md text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
                       {item.name}
                     </div>
@@ -120,7 +134,7 @@ export function Sidebar() {
 
           {/* Footer - User profile with collapse and logout */}
           <div className="p-3 border-t border-border">
-            {isCollapsed ? (
+            {shouldShowCollapsed ? (
               <div className="flex flex-col items-center gap-2">
                 {/* Collapse button */}
                 <button

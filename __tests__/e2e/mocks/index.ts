@@ -10,9 +10,9 @@ export { mockTmux, mockProcesses };
 export function setupShellJsMock() {
   vi.mock('shelljs', () => ({
     default: {
-      exec: vi.fn((command: string, options?: any, callback?: any) => {
+      exec: vi.fn((command: string, _options?: unknown, callback?: (code: number, stdout: string, stderr: string) => void) => {
         // Handle different command types
-        
+
         // tmux commands
         if (command.startsWith('tmux new-session')) {
           const match = command.match(/-s\s+(\S+)/);
@@ -107,7 +107,7 @@ export function setupMockServerFileSystem(serverName: string, options: {
   const { hasIni = true, hasDb = true, hasMapFiles = true } = options;
   
   const basePath = `/root/server-cache/${serverName}`;
-  const fsConfig: Record<string, any> = {};
+  const fsConfig: Record<string, string | Buffer | Record<string, unknown>> = {};
 
   // Base structure
   fsConfig[basePath] = {

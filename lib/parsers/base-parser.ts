@@ -234,7 +234,7 @@ export abstract class BaseParser {
 
 // Utility function to parse PZ timestamp format
 // Format: DD-MM-YY HH:MM:SS.mmm (user/chat/pvp logs) or [DD-MM-YY HH:MM:SS.mmm]
-export function parsePZTimestamp(timestamp: string, currentYear?: number): Date | null {
+export function parsePZTimestamp(timestamp: string, _currentYear?: number): Date | null {
   // Normalize: add brackets if not present
   const normalized = timestamp.startsWith('[') ? timestamp : `[${timestamp}]`;
 

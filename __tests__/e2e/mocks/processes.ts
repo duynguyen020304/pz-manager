@@ -42,7 +42,7 @@ class MockProcessManager {
     return this.processes.delete(pid);
   }
 
-  killProcess(pid: number, signal?: string): { success: boolean; error?: string } {
+  killProcess(pid: number, _signal?: string): { success: boolean; error?: string } {
     const process = this.processes.get(pid);
     if (!process) {
       return { success: false, error: `Process ${pid} not found` };

@@ -30,7 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_backup_logs_level ON backup_logs(level, time DESC
 CREATE TABLE IF NOT EXISTS pz_player_events (
     time TIMESTAMPTZ NOT NULL,
     server TEXT NOT NULL,
-    event_type TEXT NOT NULL,            -- 'login', 'logout', 'chat', 'death', 'combat', 'vehicle_enter', 'vehicle_exit', 'admin_command'
+    event_type TEXT NOT NULL,            -- 'login_success', 'login_attempt', 'login_complete', 'logout', 'chat', 'death', 'combat', 'vehicle_enter', 'vehicle_exit', 'admin_command', 'kicked', 'banned', 'already_connected', 'server_full', 'invalid_password', 'version_mismatch', 'ping_timeout'
     username TEXT,
     ip_address INET,
     details JSONB,
@@ -179,7 +179,7 @@ BEGIN
         FROM pz_player_events
         WHERE username = p_username
           AND server = p_server
-          AND event_type = 'login'
+          AND event_type = 'login_success'
           AND (p_from IS NULL OR time >= p_from)
           AND (p_to IS NULL OR time <= p_to)
     )
@@ -199,8 +199,8 @@ SELECT
     server,
     username,
     MAX(time) as last_activity,
-    MAX(time) FILTER (WHERE event_type = 'login') as last_login,
-    COUNT(*) FILTER (WHERE event_type = 'login') as login_count,
+    MAX(time) FILTER (WHERE event_type = 'login_success') as last_login,
+    COUNT(*) FILTER (WHERE event_type = 'login_success') as login_count,
     COUNT(*) FILTER (WHERE event_type = 'death') as death_count,
     COUNT(*) FILTER (WHERE event_type = 'chat') as chat_count
 FROM pz_player_events

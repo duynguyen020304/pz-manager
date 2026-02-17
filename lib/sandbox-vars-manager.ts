@@ -54,6 +54,10 @@ export async function updateSandboxVars(
       ...currentConfig.ZombieConfig,
       ...(updates.ZombieConfig || {}),
     },
+    MultiplierConfig: {
+      ...currentConfig.MultiplierConfig,
+      ...(updates.MultiplierConfig || {}),
+    },
   };
 
   await writeSandboxVars(serverName, mergedConfig);

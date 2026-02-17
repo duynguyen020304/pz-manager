@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { X, Save, RotateCcw, Loader2, Search } from 'lucide-react';
+import { X, Save, RotateCcw, Loader2, Search, ChevronLeft, AlertCircle } from 'lucide-react';
 import { useServerSandboxVars, useUpdateServerSandboxVars, useResetServerSandboxVars } from '@/hooks/use-api';
 import { SandboxVars, OptionCategory, SandboxOptionMeta } from '@/lib/sandbox-vars-types';
 
@@ -9,6 +9,7 @@ interface SandboxVarsEditorProps {
   serverName: string;
   isOpen: boolean;
   onClose: () => void;
+  onBack?: () => void;
 }
 
 const OPTION_CATEGORIES: { id: OptionCategory; label: string }[] = [
@@ -19,6 +20,7 @@ const OPTION_CATEGORIES: { id: OptionCategory; label: string }[] = [
   { id: 'character', label: 'Character' },
   { id: 'zombie_lore', label: 'Zombie Lore' },
   { id: 'zombie_config', label: 'Zombie Config' },
+  { id: 'multiplier_config', label: 'XP Multipliers' },
   { id: 'loot', label: 'Loot Rarity' },
   { id: 'meta', label: 'Meta Events' },
 ];
@@ -221,6 +223,44 @@ const SANDBOX_OPTIONS: SandboxOptionMeta[] = [
   { key: 'ZombieConfig.RespawnHours', category: 'zombie_config', label: 'Respawn Hours', description: 'Hours before zombie respawn', type: 'number', min: 0, max: 8760, nested: true, nestedKey: 'ZombieConfig' },
   { key: 'ZombieConfig.RallyGroupSize', category: 'zombie_config', label: 'Rally Group Size', description: 'Zombie group size', type: 'number', min: 0, max: 1000, nested: true, nestedKey: 'ZombieConfig' },
 
+  { key: 'MultiplierConfig.Global', category: 'multiplier_config', label: 'Global Multiplier', description: 'Global XP multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.GlobalToggle', category: 'multiplier_config', label: 'Enable Multipliers', description: 'Enable/disable individual skill multipliers', type: 'boolean', nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Fitness', category: 'multiplier_config', label: 'Fitness', description: 'Fitness skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Strength', category: 'multiplier_config', label: 'Strength', description: 'Strength skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Sprinting', category: 'multiplier_config', label: 'Sprinting', description: 'Sprinting skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Lightfoot', category: 'multiplier_config', label: 'Lightfoot', description: 'Lightfoot skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Nimble', category: 'multiplier_config', label: 'Nimble', description: 'Nimble skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Sneak', category: 'multiplier_config', label: 'Sneak', description: 'Sneak skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Axe', category: 'multiplier_config', label: 'Axe', description: 'Axe skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Blunt', category: 'multiplier_config', label: 'Blunt', description: 'Blunt weapons skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.SmallBlunt', category: 'multiplier_config', label: 'Small Blunt', description: 'Small blunt weapons skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.LongBlade', category: 'multiplier_config', label: 'Long Blade', description: 'Long blade weapons skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.SmallBlade', category: 'multiplier_config', label: 'Small Blade', description: 'Small blade weapons skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Spear', category: 'multiplier_config', label: 'Spear', description: 'Spear weapons skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Maintenance', category: 'multiplier_config', label: 'Maintenance', description: 'Maintenance skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Woodwork', category: 'multiplier_config', label: 'Woodwork', description: 'Woodwork skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Cooking', category: 'multiplier_config', label: 'Cooking', description: 'Cooking skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Farming', category: 'multiplier_config', label: 'Farming', description: 'Farming skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Doctor', category: 'multiplier_config', label: 'Doctor', description: 'Doctor skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Electricity', category: 'multiplier_config', label: 'Electricity', description: 'Electricity skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.MetalWelding', category: 'multiplier_config', label: 'Metal Welding', description: 'Metal welding skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Mechanics', category: 'multiplier_config', label: 'Mechanics', description: 'Mechanics skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Tailoring', category: 'multiplier_config', label: 'Tailoring', description: 'Tailoring skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Aiming', category: 'multiplier_config', label: 'Aiming', description: 'Aiming skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Reloading', category: 'multiplier_config', label: 'Reloading', description: 'Reloading skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Fishing', category: 'multiplier_config', label: 'Fishing', description: 'Fishing skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Trapping', category: 'multiplier_config', label: 'Trapping', description: 'Trapping skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.PlantScavenging', category: 'multiplier_config', label: 'Plant Scavenging', description: 'Plant scavenging skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.FlintKnapping', category: 'multiplier_config', label: 'Flint Knapping', description: 'Flint knapping skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Masonry', category: 'multiplier_config', label: 'Masonry', description: 'Masonry skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Pottery', category: 'multiplier_config', label: 'Pottery', description: 'Pottery skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Carving', category: 'multiplier_config', label: 'Carving', description: 'Carving skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Husbandry', category: 'multiplier_config', label: 'Husbandry', description: 'Husbandry skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Tracking', category: 'multiplier_config', label: 'Tracking', description: 'Tracking skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Blacksmith', category: 'multiplier_config', label: 'Blacksmith', description: 'Blacksmith skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Butchering', category: 'multiplier_config', label: 'Butchering', description: 'Butchering skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+  { key: 'MultiplierConfig.Glassmaking', category: 'multiplier_config', label: 'Glassmaking', description: 'Glassmaking skill multiplier', type: 'number', min: 0, max: 10, nested: true, nestedKey: 'MultiplierConfig' },
+
   // Loot
   { key: 'FoodLoot', category: 'loot', label: 'Food Loot', description: 'Rarity of food items', type: 'select', min: 1, max: 5, options: [
     { value: 1, label: 'Extremely Rare' },
@@ -288,7 +328,7 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
   current[parts[parts.length - 1]] = value;
 }
 
-export function SandboxVarsEditor({ serverName, isOpen, onClose }: SandboxVarsEditorProps) {
+export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: SandboxVarsEditorProps) {
   const { data, isLoading } = useServerSandboxVars(serverName);
   const updateSandboxVars = useUpdateServerSandboxVars();
   const resetSandboxVars = useResetServerSandboxVars();
@@ -297,6 +337,8 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose }: SandboxVarsEd
   const [activeTab, setActiveTab] = useState<OptionCategory>('population');
   const [searchQuery, setSearchQuery] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const config = localConfig || data?.config || {};
 
@@ -314,41 +356,60 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose }: SandboxVarsEd
       return newConfig;
     });
     setHasChanges(true);
+    setError(null);
   };
 
   const handleSave = async () => {
     if (!localConfig) return;
+    setIsSaving(true);
+    setError(null);
     try {
       await updateSandboxVars.mutateAsync({
         serverName,
         config: localConfig
       });
       setHasChanges(false);
-    } catch (error) {
-      console.error('Failed to save:', error);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save configuration');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleReset = async () => {
+    if (!confirm('Are you sure you want to reset all settings to defaults?')) {
+      return;
+    }
     try {
       await resetSandboxVars.mutateAsync(serverName);
       setHasChanges(false);
-    } catch (error) {
-      console.error('Failed to reset:', error);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset configuration');
     }
+  };
+
+  const handleClose = () => {
+    if (hasChanges && !confirm('You have unsaved changes. Are you sure you want to close?')) {
+      return;
+    }
+    onClose();
   };
 
   const filteredOptions = useMemo(() => {
     let options = SANDBOX_OPTIONS.filter(opt => opt.category === activeTab);
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      options = options.filter(opt => 
-        opt.label.toLowerCase().includes(query) || 
+      options = options.filter(opt =>
+        opt.label.toLowerCase().includes(query) ||
         opt.description.toLowerCase().includes(query)
       );
     }
     return options;
   }, [activeTab, searchQuery]);
+
+  const allOptionsInTab = useMemo(() => {
+    return SANDBOX_OPTIONS.filter(opt => opt.category === activeTab);
+  }, [activeTab]);
 
   const renderInput = (option: SandboxOptionMeta) => {
     const value = getNestedValue(config as Record<string, unknown>, option.key);
@@ -407,102 +468,160 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose }: SandboxVarsEd
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+    <>
+      <div
+        className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
+        onClick={handleClose}
+      />
+
+      <div className="fixed inset-y-0 right-0 w-full lg:w-[600px] xl:w-[700px] bg-card border-l border-border z-50 shadow-2xl animate-slide-in-right flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-xl font-semibold">Difficulty Settings</h2>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-lg">
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+                aria-label="Back"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Sandbox Settings</h2>
+              <p className="text-sm text-muted-foreground">Server: {serverName}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-2 rounded-lg hover:bg-muted transition-colors"
+            aria-label="Close"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="w-6 h-6 animate-spin" />
+        <div className="p-4 border-b border-border overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            {OPTION_CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveTab(cat.id)}
+                className={`
+                  px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
+                  ${activeTab === cat.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-foreground hover:bg-muted'
+                  }
+                `}
+              >
+                {cat.label}
+              </button>
+            ))}
           </div>
-        ) : (
-          <div className="flex flex-1 overflow-hidden">
-            <div className="w-48 border-r border-border p-2 space-y-1">
-              {OPTION_CATEGORIES.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveTab(cat.id)}
-                  className={`
-                    w-full text-left px-3 py-2 rounded-lg text-sm transition-colors
-                    ${activeTab === cat.id 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'hover:bg-accent'
-                    }
-                  `}
-                >
-                  {cat.label}
-                </button>
+        </div>
+
+        <div className="p-4 border-b border-border">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search settings..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-foreground"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Showing {filteredOptions.length} of {allOptionsInTab.length} settings
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredOptions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {searchQuery
+                  ? 'No settings match your search'
+                  : 'No settings found for this category'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {error && (
+                <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
+
+              {filteredOptions.map(option => (
+                <div key={option.key} className="flex items-start gap-4 p-3 rounded-lg hover:bg-accent/50">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm text-foreground">{option.label}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{option.description}</div>
+                  </div>
+                  <div className="w-40">
+                    {renderInput(option)}
+                  </div>
+                </div>
               ))}
             </div>
+          )}
+        </div>
 
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="p-4 border-b border-border">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search settings..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm"
-                  />
-                </div>
-              </div>
+        <div className="p-4 border-t border-border bg-card">
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleReset}
+              disabled={isSaving || resetSandboxVars.isPending}
+              className="w-full px-4 py-2 border border-destructive/50 text-destructive rounded-lg hover:bg-destructive/10 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Reset to Defaults
+            </button>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {filteredOptions.map(option => (
-                  <div key={option.key} className="flex items-start gap-4 p-3 rounded-lg hover:bg-accent/50">
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{option.label}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{option.description}</div>
-                    </div>
-                    <div className="w-40">
-                      {renderInput(option)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleClose}
+                className="flex-1 px-4 py-2.5 border border-border rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+                disabled={isSaving}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving || !hasChanges}
+                className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Changes
+                  </>
+                )}
+              </button>
             </div>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between p-4 border-t border-border">
-          <button
-            onClick={handleReset}
-            disabled={resetSandboxVars.isPending}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-accent transition-colors text-sm"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Reset to Default
-          </button>
-          
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-border hover:bg-accent transition-colors text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!hasChanges || updateSandboxVars.isPending}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm disabled:opacity-50"
-            >
-              {updateSandboxVars.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              Save Changes
-            </button>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
