@@ -6,10 +6,11 @@
 import fs from 'fs';
 import path from 'path';
 import { parseAndIngestFile, updateFilePosition } from './log-manager';
-import { getLogPaths, getBackupSystemParserConfigs } from './parsers';
+import { getLogPaths, getBackupSystemParserConfigs, getParserConfigsDynamic } from './parsers';
 import { getRunningServers } from './server-manager';
 import { logStreamManager } from './log-stream-manager';
 import type { ParserType, UnifiedLogEntry } from '@/types';
+import { SERVER_LOGS_PATH } from './paths';
 
 function mapParserTypeToSource(parserType: ParserType): UnifiedLogEntry['source'] {
   switch (parserType) {
@@ -319,27 +320,31 @@ export async function startWatchingAll(servers: string[] = []): Promise<void> {
     watchLogFile(config.filePath, config.type);
   }
 
-  // Watch PZ game logs for each server
+  // Watch PZ game logs for each server using dynamic discovery
   for (const server of serversToWatch) {
-    // Get server-specific log paths
-    const logPaths = getLogPaths(server);
+    const logsDir = SERVER_LOGS_PATH(server);
+    console.log(`[LogWatcher] Discovering log files for server: ${server} in ${logsDir}`);
 
-    // Watch all game logs for this server
-    watchLogFile(logPaths.pzUserLog, 'user', server);
-    watchLogFile(logPaths.pzChatLog, 'chat', server);
-    watchLogFile(logPaths.pzPerkLog, 'perk', server);
-    watchLogFile(logPaths.pzPvpLog, 'pvp', server);
-    watchLogFile(logPaths.pzAdminLog, 'admin', server);
-    watchLogFile(logPaths.pzCmdLog, 'cmd', server);
-  }
+    // Use dynamic discovery to find latest timestamped log files
+    try {
+      const configs = await getParserConfigsDynamic(server);
 
-  // Watch today's server log for each running server
-  const today = new Date().toISOString().split('T')[0];
-  for (const server of serversToWatch) {
-    const logPaths = getLogPaths(server);
-    const serverLogPath = logPaths.pzServerLog(today);
-    if (fs.existsSync(path.dirname(serverLogPath))) {
-      watchLogFile(serverLogPath, 'server', server);
+      for (const config of configs) {
+        if (config.enabled && config.filePath) {
+          console.log(`[LogWatcher] Found log file: ${config.type} -> ${config.filePath}`);
+          watchLogFile(config.filePath, config.type, server);
+        }
+      }
+    } catch (error) {
+      console.error(`[LogWatcher] Error discovering log files for ${server}:`, error);
+      // Fallback to legacy paths
+      const logPaths = getLogPaths(server);
+      watchLogFile(logPaths.pzUserLog, 'user', server);
+      watchLogFile(logPaths.pzChatLog, 'chat', server);
+      watchLogFile(logPaths.pzPerkLog, 'perk', server);
+      watchLogFile(logPaths.pzPvpLog, 'pvp', server);
+      watchLogFile(logPaths.pzAdminLog, 'admin', server);
+      watchLogFile(logPaths.pzCmdLog, 'cmd', server);
     }
   }
 
@@ -375,6 +380,7 @@ export function getWatchStatus(): Array<{
 
 /**
  * Force ingest all log files (useful for initial load)
+ * Uses dynamic discovery to find timestamped log files
  */
 export async function ingestAllLogs(servers: string[] = []): Promise<{
   totalEntries: number;
@@ -395,27 +401,51 @@ export async function ingestAllLogs(servers: string[] = []): Promise<{
     }
   }
 
-  // Ingest PZ game logs
+  // Ingest PZ game logs using dynamic discovery
   for (const server of servers) {
-    // Get server-specific log paths
-    const logPaths = getLogPaths(server);
+    console.log(`[LogWatcher] Ingesting logs for server: ${server}`);
 
-    const logFiles: Array<{ path: string; type: ParserType }> = [
-      { path: logPaths.pzUserLog, type: 'user' },
-      { path: logPaths.pzChatLog, type: 'chat' },
-      { path: logPaths.pzPerkLog, type: 'perk' },
-      { path: logPaths.pzPvpLog, type: 'pvp' },
-      { path: logPaths.pzAdminLog, type: 'admin' },
-      { path: logPaths.pzCmdLog, type: 'cmd' },
-    ];
+    // Try dynamic discovery first
+    try {
+      const configs = await getParserConfigsDynamic(server);
+      const logTypes = ['user', 'chat', 'perk', 'pvp', 'admin', 'cmd', 'server'] as const;
 
-    for (const { path: filePath, type } of logFiles) {
-      try {
-        const result = await parseAndIngestFile(filePath, type, server);
-        totalEntries += result.entriesAdded;
-        errors.push(...result.errors);
-      } catch (error) {
-        errors.push(`Failed to ingest ${filePath}: ${error}`);
+      for (const logType of logTypes) {
+        const config = configs.find(c => c.type === logType);
+        if (config && config.filePath) {
+          try {
+            const result = await parseAndIngestFile(config.filePath, logType, server);
+            totalEntries += result.entriesAdded;
+            if (result.errors.length > 0) {
+              errors.push(...result.errors);
+            }
+          } catch (error) {
+            errors.push(`Failed to ingest ${config.filePath}: ${error}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`[LogWatcher] Error with dynamic discovery for ${server}, falling back to legacy paths:`, error);
+
+      // Fallback to legacy paths
+      const logPaths = getLogPaths(server);
+      const logFiles: Array<{ path: string; type: ParserType }> = [
+        { path: logPaths.pzUserLog, type: 'user' },
+        { path: logPaths.pzChatLog, type: 'chat' },
+        { path: logPaths.pzPerkLog, type: 'perk' },
+        { path: logPaths.pzPvpLog, type: 'pvp' },
+        { path: logPaths.pzAdminLog, type: 'admin' },
+        { path: logPaths.pzCmdLog, type: 'cmd' },
+      ];
+
+      for (const { path: filePath, type } of logFiles) {
+        try {
+          const result = await parseAndIngestFile(filePath, type, server);
+          totalEntries += result.entriesAdded;
+          errors.push(...result.errors);
+        } catch (error) {
+          errors.push(`Failed to ingest ${filePath}: ${error}`);
+        }
       }
     }
   }

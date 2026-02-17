@@ -9,6 +9,8 @@ export {
   LOG_PATHS,
   getLogPaths,
   getParserConfigs,
+  getParserConfigsDynamic,
+  getAllLogFilesForServer,
   getBackupSystemParserConfigs,
   parsePZTimestamp,
   parseBackupTimestamp,

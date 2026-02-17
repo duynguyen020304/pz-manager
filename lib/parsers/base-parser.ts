@@ -12,6 +12,9 @@ import {
   ROLLBACK_LOG_PATH,
   SERVER_LOG_PATH,
   SERVER_LOGS_PATH,
+  findLatestLogFile,
+  findAllLogFiles,
+  getTodaysServerLogPath,
 } from '@/lib/paths';
 
 // Log file paths configuration (legacy - shared location, deprecated)
@@ -72,7 +75,7 @@ export interface ParserConfig {
 }
 
 /**
- * Get parser configurations for a specific server
+ * Get parser configurations for a specific server (synchronous - returns static paths)
  * @param serverName - Server name for server-specific log paths (required)
  * @returns Array of parser configurations with server-specific file paths
  */
@@ -91,6 +94,68 @@ export function getParserConfigs(serverName: string): ParserConfig[] {
     { type: 'cmd', filePath: logPaths.pzCmdLog, enabled: true, description: 'Server commands' },
     { type: 'vehicle', filePath: logPaths.pzClientActionLog, enabled: true, description: 'Vehicle events' },
   ];
+}
+
+/**
+ * Get parser configurations with dynamic log file discovery (async)
+ * Finds the latest timestamped log files for each type
+ * @param serverName - Server name for server-specific log paths (required)
+ * @returns Array of parser configurations with discovered file paths
+ */
+export async function getParserConfigsDynamic(serverName: string): Promise<ParserConfig[]> {
+  const configs: ParserConfig[] = [];
+  const logTypes = ['user', 'chat', 'server', 'perk', 'pvp', 'admin', 'cmd'] as const;
+
+  for (const logType of logTypes) {
+    let filePath: string | null = null;
+
+    if (logType === 'server') {
+      filePath = await getTodaysServerLogPath(serverName);
+    } else {
+      filePath = await findLatestLogFile(serverName, logType);
+    }
+
+    if (filePath) {
+      configs.push({
+        type: logType,
+        filePath,
+        enabled: true,
+        description: getLogTypeDescription(logType),
+      });
+    }
+  }
+
+  return configs;
+}
+
+/**
+ * Get all log files for a server (for historical ingestion)
+ * @param serverName - Server name
+ * @returns Object with arrays of file paths for each log type
+ */
+export async function getAllLogFilesForServer(serverName: string): Promise<Record<string, string[]>> {
+  const logTypes = ['user', 'chat', 'server', 'perk', 'pvp', 'admin', 'cmd'] as const;
+  const result: Record<string, string[]> = {};
+
+  for (const logType of logTypes) {
+    result[logType] = await findAllLogFiles(serverName, logType);
+  }
+
+  return result;
+}
+
+function getLogTypeDescription(logType: string): string {
+  const descriptions: Record<string, string> = {
+    user: 'Player events (login, logout, death)',
+    chat: 'Chat messages',
+    server: 'Server events (startup, shutdown, errors)',
+    perk: 'Player skill progression',
+    pvp: 'Combat and PvP events',
+    admin: 'Admin commands',
+    cmd: 'Server commands',
+    vehicle: 'Vehicle events',
+  };
+  return descriptions[logType] || logType;
 }
 
 /**
@@ -168,18 +233,22 @@ export abstract class BaseParser {
 }
 
 // Utility function to parse PZ timestamp format
-// Format: [YY-MM-DD HH:MM:SS.mmm] or [YYYY-MM-DD HH:MM:SS]
-export function parsePZTimestamp(timestamp: string, _currentYear?: number): Date | null {
-  // Try full format with milliseconds: [YY-MM-DD HH:MM:SS.mmm]
-  const shortFormat = /^\[(\d{2})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d+)\]$/;
-  const match = timestamp.match(shortFormat);
+// Format: DD-MM-YY HH:MM:SS.mmm (user/chat/pvp logs) or [DD-MM-YY HH:MM:SS.mmm]
+export function parsePZTimestamp(timestamp: string, currentYear?: number): Date | null {
+  // Normalize: add brackets if not present
+  const normalized = timestamp.startsWith('[') ? timestamp : `[${timestamp}]`;
 
-  if (match) {
-    const [, yy, mm, dd, hh, mi, ss, ms] = match;
-    // Handle year - PZ uses 2-digit year, assume 2000s
-    const fullYear = parseInt(yy) + 2000;
+  // Try DD-MM-YY format with milliseconds: [DD-MM-YY HH:MM:SS.mmm]
+  // This is the format used by user.txt, chat.txt, pvp.txt logs
+  const ddMmYyFormat = /^\[(\d{2})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d+)\]$/;
+  const ddMmYyMatch = normalized.match(ddMmYyFormat);
+
+  if (ddMmYyMatch) {
+    const [, dd, mm, yy, hh, mi, ss, ms] = ddMmYyMatch;
+    // Handle 2-digit year - PZ uses DD-MM-YY, so year 26 = 2026
+    const year = parseInt(yy) + 2000;
     return new Date(
-      fullYear,
+      year,
       parseInt(mm) - 1,
       parseInt(dd),
       parseInt(hh),
@@ -191,7 +260,7 @@ export function parsePZTimestamp(timestamp: string, _currentYear?: number): Date
 
   // Try full format without milliseconds: [YYYY-MM-DD HH:MM:SS]
   const fullFormat = /^\[(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\]$/;
-  const fullMatch = timestamp.match(fullFormat);
+  const fullMatch = normalized.match(fullFormat);
 
   if (fullMatch) {
     const [, yyyy, mm, dd, hh, mi, ss] = fullMatch;
@@ -202,6 +271,25 @@ export function parsePZTimestamp(timestamp: string, _currentYear?: number): Date
       parseInt(hh),
       parseInt(mi),
       parseInt(ss)
+    );
+  }
+
+  // Try old YY-MM-DD format with milliseconds (legacy)
+  const yyMmDdFormat = /^\[(\d{2})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d+)\]$/;
+  const yyMmDdMatch = normalized.match(yyMmDdFormat);
+
+  if (yyMmDdMatch) {
+    const [, yy, mm, dd, hh, mi, ss, ms] = yyMmDdMatch;
+    // Handle year - PZ uses 2-digit year, assume 2000s
+    const fullYear = parseInt(yy) + 2000;
+    return new Date(
+      fullYear,
+      parseInt(mm) - 1,
+      parseInt(dd),
+      parseInt(hh),
+      parseInt(mi),
+      parseInt(ss),
+      parseInt(ms.padEnd(3, '0').slice(0, 3))
     );
   }
 
@@ -286,11 +374,13 @@ export const PATTERNS = {
   // Perk log line 2 (skills): [12-02-26 16:18:24.420] [username][coords][Cooking=0, Fitness=9, ...][Hours Survived: 87]
   perkLogLine2: /^\[(\d{2}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\] \[([^\]]+)\]\[([^\]]+)\]\[([^\]]+)\]\[Hours Survived: (\d+)\]/,
 
-  // Server log: Various formats, handled specially
-  serverLog: /^\[(\d{2}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\]\[(\w+)\] (.+)$/,
+  // Server log: [DD-MM-YY HH:MM:SS.mmm] LOG  : <category> <message>
+  // Also handles: [DD-MM-YY HH:MM:SS.mmm] ERROR: <category> <message>
+  serverLog: /^\[(\d{2}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\] (\w+)\s+: (.+)$/,
 
-  // PVP log: Various combat formats
-  pvpLog: /^\[(\d{2}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\] (.+)$/,
+  // PVP log: [DD-MM-YY HH:MM:SS.mmm][LOG] <message>
+  // Also: [DD-MM-YY HH:MM:SS.mmm][INFO] <message>
+  pvpLog: /^\[(\d{2}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\]\[(\w+)\] (.+)$/,
 
   // IP address pattern
   ipAddress: /^(\d{1,3}\.){3}\d{1,3}$/,

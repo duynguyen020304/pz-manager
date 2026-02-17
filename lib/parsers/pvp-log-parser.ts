@@ -18,6 +18,9 @@ interface PVPEventDetails {
 
 // PVP event patterns
 const PVP_PATTERNS = {
+  // Zomboid combat format: Combat: "player" (x,y,z) hit "player" (x,y,z) weapon="weapon" damage=N
+  combat: /Combat:\s*"([^"]+)"\s*\([^)]+\)\s+hit\s+"([^"]+)"\s*\([^)]+\)\s+weapon="([^"]+)"\s+damage=([-\d.]+)/i,
+
   // Damage event: "X hit Y with Z for N damage"
   damage: /(\w+)\s+hit\s+(\w+)\s+with\s+(.+?)\s+for\s+([\d.]+)\s+damage/i,
 
@@ -52,7 +55,8 @@ export class PVPLogParser extends BaseParser {
     const match = line.match(PATTERNS.pvpLog);
     if (!match) return null;
 
-    const [, timestamp, message] = match;
+    // Pattern now captures: [timestamp][level] message
+    const [, timestamp, _level, message] = match;
     const time = parsePZTimestamp(timestamp, this.currentYear);
 
     if (!time) return null;
@@ -78,8 +82,21 @@ export class PVPLogParser extends BaseParser {
   }
 
   private parsePVPEvent(message: string): PVPEventDetails | null {
-    // Try kill pattern first
-    let match = message.match(PVP_PATTERNS.kill);
+    // Try Zomboid combat format: Combat: "player" (x,y,z) hit "player" (x,y,z) weapon="weapon" damage=N
+    let match = message.match(PVP_PATTERNS.combat);
+    if (match) {
+      return {
+        attacker: match[1],
+        victim: match[2],
+        weapon: match[3],
+        damage: parseFloat(match[4]),
+        wasKill: false,
+        ...this.parseAdditionalDetails(message),
+      };
+    }
+
+    // Try kill pattern
+    match = message.match(PVP_PATTERNS.kill);
     if (match) {
       return {
         attacker: match[1],
