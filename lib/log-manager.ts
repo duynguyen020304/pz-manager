@@ -186,7 +186,8 @@ export async function insertPlayerEvents(entries: PZPlayerEvent[]): Promise<numb
     try {
       await query(
         `INSERT INTO pz_player_events (time, server, event_type, username, ip_address, details)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (time, username, event_type, server) DO NOTHING`,
         [
           entry.time,
           entry.server,

@@ -76,13 +76,92 @@ function createDatabaseInternal(): IMemoryDb {
       ('admin', 'Administrator', '{"servers": ["view", "start", "stop"], "users": ["view"]}', true),
       ('operator', 'Operator', '{"servers": ["view", "start", "stop"]}', true),
       ('viewer', 'Viewer', '{"servers": ["view"]}', true);
+
+    -- Log tables (minimal schema, no indexes for speed)
+    CREATE TABLE IF NOT EXISTS backup_logs (
+      time TIMESTAMPTZ NOT NULL,
+      log_type TEXT NOT NULL,
+      level TEXT NOT NULL,
+      server TEXT,
+      message TEXT NOT NULL,
+      details JSONB,
+      parsed_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS pz_player_events (
+      time TIMESTAMPTZ NOT NULL,
+      server TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      username TEXT,
+      ip_address INET,
+      details JSONB,
+      parsed_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT pz_player_events_unique UNIQUE (time, username, event_type, server)
+    );
+
+    CREATE TABLE IF NOT EXISTS pz_server_events (
+      time TIMESTAMPTZ NOT NULL,
+      server TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      category TEXT,
+      level TEXT,
+      message TEXT,
+      details JSONB,
+      parsed_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS pz_skill_snapshots (
+      time TIMESTAMPTZ NOT NULL,
+      server TEXT NOT NULL,
+      username TEXT NOT NULL,
+      player_id INTEGER,
+      hours_survived INTEGER,
+      skills JSONB NOT NULL,
+      parsed_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS pz_chat_messages (
+      time TIMESTAMPTZ NOT NULL,
+      server TEXT NOT NULL,
+      username TEXT NOT NULL,
+      chat_type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      coordinates JSONB,
+      parsed_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS log_file_positions (
+      file_path TEXT PRIMARY KEY,
+      last_position BIGINT NOT NULL,
+      last_modified TIMESTAMPTZ NOT NULL,
+      last_ingested TIMESTAMPTZ DEFAULT NOW(),
+      file_size BIGINT,
+      checksum TEXT,
+      parser_type TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS pz_pvp_events (
+      time TIMESTAMPTZ NOT NULL,
+      server TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      attacker TEXT,
+      victim TEXT,
+      weapon TEXT,
+      damage REAL,
+      details JSONB,
+      parsed_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
 
   // Create pg adapter Pool for use by both lib/db.ts and resetTestDatabase
   const { Pool: PgMemPool } = db.adapters.createPg();
   pool = new PgMemPool({ max: 1 }) as TestPool;
 
-  // Seed initial test data through the Pool
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).__TEST_DB__ = db;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).__TEST_POOL__ = pool;
+
   seedTestData();
 
   return db;
