@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       server: server || undefined,
       eventType: searchParams.get('eventType') || undefined,
       username: searchParams.get('username') || undefined,
+      search: searchParams.get('search') || undefined,
       level: searchParams.get('level') || undefined,
       from: searchParams.get('from') ? new Date(searchParams.get('from')!) : undefined,
       to: searchParams.get('to') ? new Date(searchParams.get('to')!) : undefined,

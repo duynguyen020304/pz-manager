@@ -50,7 +50,7 @@ export default function LogsPage() {
     source,
     server: filterServer || undefined,
     level: filterLevel || undefined,
-    username: searchQuery || undefined,
+    search: searchQuery || undefined,
     limit,
     offset: page * limit,
   }), [source, filterServer, filterLevel, searchQuery, page]);
@@ -62,20 +62,9 @@ export default function LogsPage() {
   const stopWatchMutation = useStopLogWatching();
 
   const servers = serversData?.map(s => s.name) || [];
-  const logsDataResult = logsData;
+  const logs = logsData?.logs || [];
   const pagination = logsData?.pagination;
   const stats = statsData;
-
-  const filteredLogs = useMemo(() => {
-    const logs = logsDataResult?.logs || [];
-    if (!searchQuery) return logs;
-    const query = searchQuery.toLowerCase();
-    return logs.filter(log =>
-      log.message?.toLowerCase().includes(query) ||
-      log.username?.toLowerCase().includes(query) ||
-      log.server?.toLowerCase().includes(query)
-    );
-  }, [logsDataResult, searchQuery]);
 
   const handleRefresh = () => {
     refetch();
@@ -290,8 +279,8 @@ export default function LogsPage() {
             <LogCardSkeleton />
             <LogCardSkeleton />
           </>
-        ) : filteredLogs.length > 0 ? (
-          filteredLogs.map((log) => (
+        ) : logs.length > 0 ? (
+          logs.map((log) => (
             <LogCard
               key={log.id}
               log={log}

@@ -122,6 +122,12 @@ export async function getBackupLogs(filters: LogFilters = {}): Promise<{ logs: B
     params.push(filters.server);
   }
 
+  if (filters.search) {
+    conditions.push(`(message ILIKE $${paramIndex} OR server ILIKE $${paramIndex})`);
+    params.push(`%${filters.search}%`);
+    paramIndex++;
+  }
+
   if (filters.level) {
     conditions.push(`level = $${paramIndex++}`);
     params.push(filters.level.toUpperCase());
@@ -186,8 +192,7 @@ export async function insertPlayerEvents(entries: PZPlayerEvent[]): Promise<numb
     try {
       await query(
         `INSERT INTO pz_player_events (time, server, event_type, username, ip_address, details)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (time, username, event_type, server) DO NOTHING`,
+         VALUES ($1, $2, $3, $4, $5, $6)`,
         [
           entry.time,
           entry.server,
@@ -224,6 +229,12 @@ export async function getPlayerEvents(filters: LogFilters = {}): Promise<{ logs:
   if (filters.username) {
     conditions.push(`username ILIKE $${paramIndex++}`);
     params.push(`%${filters.username}%`);
+  }
+
+  if (filters.search) {
+    conditions.push(`(username ILIKE $${paramIndex} OR server ILIKE $${paramIndex})`);
+    params.push(`%${filters.search}%`);
+    paramIndex++;
   }
 
   if (filters.from) {
@@ -323,6 +334,12 @@ export async function getServerEvents(filters: LogFilters = {}): Promise<{ logs:
   if (filters.level) {
     conditions.push(`level = $${paramIndex++}`);
     params.push(filters.level.toUpperCase());
+  }
+
+  if (filters.search) {
+    conditions.push(`(message ILIKE $${paramIndex} OR server ILIKE $${paramIndex})`);
+    params.push(`%${filters.search}%`);
+    paramIndex++;
   }
 
   if (filters.from) {
@@ -490,6 +507,12 @@ export async function getChatMessages(filters: LogFilters = {}): Promise<{ logs:
     params.push(`%${filters.username}%`);
   }
 
+  if (filters.search) {
+    conditions.push(`(username ILIKE $${paramIndex} OR message ILIKE $${paramIndex} OR server ILIKE $${paramIndex})`);
+    params.push(`%${filters.search}%`);
+    paramIndex++;
+  }
+
   if (filters.from) {
     conditions.push(`time >= $${paramIndex++}`);
     params.push(filters.from);
@@ -588,6 +611,12 @@ export async function getPVPEvents(filters: LogFilters = {}): Promise<{ logs: PZ
   if (filters.username) {
     conditions.push(`(attacker ILIKE $${paramIndex} OR victim ILIKE $${paramIndex})`);
     params.push(`%${filters.username}%`);
+    paramIndex++;
+  }
+
+  if (filters.search) {
+    conditions.push(`(attacker ILIKE $${paramIndex} OR victim ILIKE $${paramIndex} OR weapon ILIKE $${paramIndex} OR server ILIKE $${paramIndex})`);
+    params.push(`%${filters.search}%`);
     paramIndex++;
   }
 

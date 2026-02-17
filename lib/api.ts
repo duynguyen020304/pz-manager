@@ -380,6 +380,7 @@ export async function getLogs(filters?: LogFilters): Promise<LogsResponse<Unifie
   if (filters?.server) searchParams.set('server', filters.server);
   if (filters?.eventType) searchParams.set('eventType', filters.eventType);
   if (filters?.username) searchParams.set('username', filters.username);
+  if (filters?.search) searchParams.set('search', filters.search);
   if (filters?.level) searchParams.set('level', filters.level);
   if (filters?.from) searchParams.set('from', filters.from.toISOString());
   if (filters?.to) searchParams.set('to', filters.to.toISOString());

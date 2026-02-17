@@ -421,6 +421,7 @@ export interface LogFilters {
   server?: string;
   eventType?: string;
   username?: string;
+  search?: string;
   source?: string;
   level?: string;
   from?: Date;
