@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { User, ChevronRight, Home, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSidebar } from '@/components/providers/sidebar-provider';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const breadcrumbMap: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -65,15 +66,18 @@ export function TopHeader() {
         </nav>
       </div>
 
-      {/* Right section: User profile */}
-      <button
-        className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-        aria-label="User profile"
-      >
-        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-          <User className="w-4 h-4 text-primary" />
-        </div>
-      </button>
+      {/* Right section: Theme Toggle + User profile */}
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <button
+          className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          aria-label="User profile"
+        >
+          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+            <User className="w-4 h-4 text-primary" />
+          </div>
+        </button>
+      </div>
     </header>
   );
 }
