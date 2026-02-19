@@ -2,10 +2,10 @@
 
 #
 # Reset Superadmin Account Script
-# Usage: ./scripts/reset-superadmin.sh
+# Usage: ./scripts/reset-superadmin.sh [-p [password]]
 #
 # This script will:
-# 1. Generate a strong random password
+# 1. Generate a strong random password or use the provided one
 # 2. Create or reset the admin user with superadmin role
 # 3. Display the new credentials
 #
@@ -45,17 +45,56 @@ generate_password() {
 generate_hash() {
     local password="$1"
     cd "$PROJECT_DIR"
-    node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('$password', 10));"
+    # Use environment variable to safely pass password to Node.js
+    PASSWORD="$password" node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync(process.env.PASSWORD, 10));"
 }
+
+# Parse arguments
+NEW_PASSWORD=""
+USE_RANDOM=true
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -p)
+      if [[ -n "$2" && "$2" != -* ]]; then
+        NEW_PASSWORD="$2"
+        USE_RANDOM=false
+        shift 2
+      else
+        # -p with no argument or next argument is another flag
+        USE_RANDOM=true
+        shift 1
+      fi
+      ;;
+    -h|--help)
+      echo "Usage: $0 [-p [password]]"
+      echo ""
+      echo "Options:"
+      echo "  -p           Generate a random password (default behavior)"
+      echo "  -p password  Use the specified password"
+      echo "  -h, --help   Show this help message"
+      exit 0
+      ;;
+    *)
+      echo -e "${RED}Unknown option: $1${NC}"
+      echo "Usage: $0 [-p [password]]"
+      exit 1
+      ;;
+  esac
+done
 
 echo -e "${CYAN}========================================${NC}"
 echo -e "${CYAN}   Reset Superadmin Account${NC}"
 echo -e "${CYAN}========================================${NC}"
 echo ""
 
-# Generate new password
-NEW_PASSWORD=$(generate_password)
-echo -e "${YELLOW}Generating strong password...${NC}"
+# Determine password to use
+if [ "$USE_RANDOM" = true ] && [ -z "$NEW_PASSWORD" ]; then
+    NEW_PASSWORD=$(generate_password)
+    echo -e "${YELLOW}Generating strong password...${NC}"
+else
+    echo -e "${YELLOW}Using specified password...${NC}"
+fi
 
 # Generate bcrypt hash
 PASSWORD_HASH=$(generate_hash "$NEW_PASSWORD")
@@ -120,14 +159,7 @@ if [ $? -eq 0 ]; then
     echo ""
     echo -e "${RED}>>> Save this password securely! It won't be shown again. <<<${NC}"
     echo ""
-
-    # Also update .env.local with new hash (for compatibility)
-    if grep -q "^ADMIN_PASSWORD_HASH=" "$ENV_FILE"; then
-        sed -i "s|^ADMIN_PASSWORD_HASH=.*|ADMIN_PASSWORD_HASH=$PASSWORD_HASH|" "$ENV_FILE"
-    else
-        echo "ADMIN_PASSWORD_HASH=$PASSWORD_HASH" >> "$ENV_FILE"
-    fi
-    echo -e "${GREEN}Updated ADMIN_PASSWORD_HASH in .env.local${NC}"
+    echo -e "${GREEN}Admin credentials updated in database${NC}"
     echo ""
 else
     echo -e "${RED}Error: Failed to update database${NC}"

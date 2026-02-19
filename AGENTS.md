@@ -286,20 +286,21 @@ __tests__/              # Test files
 ## Environment Variables
 
 ```bash
-ADMIN_PASSWORD_HASH=    # bcrypt hash for admin login
+DATABASE_URL=           # PostgreSQL connection string (required)
 SESSION_SECRET=         # Random secret (32+ chars) for session encryption
 ZOMBOID_PATH=/root/Zomboid
 BACKUP_CONFIG_PATH=/root/Zomboid/backup-system/config/backup-config.json
 SNAPSHOTS_PATH=/root/Zomboid/backup-system/snapshots
-DATABASE_URL=           # PostgreSQL connection string (optional, for real DB tests)
 USE_REAL_DATABASE=true  # Set to run tests against real TimescaleDB
 ```
+
+**Note:** Admin authentication is now database-backed. Use `./scripts/reset-superadmin.sh -p` to create or reset the admin user.
 
 ## Key Technical Details
 
 - Dev server: port 3001 (0.0.0.0) | Prod: port 3000 (127.0.0.1)
 - Always run `npm run lint` after changes
-- Dark theme only (no light mode)
+- Dual theme support (light and dark mode)
 - Session auth with HTTP-only cookies
 - Font: Inter (sans), JetBrains Mono (mono)
 - No emojis in code files unless explicitly requested

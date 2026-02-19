@@ -1,6 +1,28 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --primary: #2ecc71;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --ring: #2ecc71;
+  --radius: 0.5rem;
+}
+
+.dark {
   --background: #0b0e14;
   --foreground: #f1f5f9;
   --card: #161b22;
@@ -17,7 +39,6 @@
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --ring: #2ecc71;
-  --radius: 0.5rem;
 }
 
 @theme inline {

@@ -114,11 +114,11 @@
 | **TypeScript 5** | Full type safety with strict mode enabled |
 | **PostgreSQL** | Relational database with connection pooling and transaction support |
 | **React Query v5** | Powerful server state management with caching and synchronization |
-| **Tailwind CSS v4** | Modern utility-first styling with dark theme and CSS variables |
+| **Tailwind CSS v4** | Modern utility-first styling with dual-theme (light/dark) support via CSS variables |
 | **Responsive Design** | Mobile-friendly interface with collapsible sidebar |
 | **Accessibility** | ARIA labels, keyboard navigation, and screen reader support |
 | **Real-Time Updates** | Live data synchronization across all connected clients via SSE |
-| **Dark Theme Only** | Optimized dark interface for server management |
+| **Dual Theme Support** | Optimized light and dark interfaces for server management |
 
 ### Additional Capabilities
 

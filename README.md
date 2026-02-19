@@ -18,12 +18,14 @@ A modern web application for managing Project Zomboid server backups, rollbacks,
 - **Backend**: Next.js API Routes (serverless)
 - **State Management**: TanStack Query (React Query) for server state
 - **UI Components**: Custom components with Tailwind
-- **Authentication**: bcryptjs with session cookies
+- **Authentication**: Database-backed with bcrypt password hashing and session cookies
+- **Database**: PostgreSQL with TimescaleDB
 
 ## Prerequisites
 
 - Node.js 18+
 - npm
+- PostgreSQL database
 - Project Zomboid backup system configured
 - (Optional) Cloudflare account for tunnel
 
@@ -36,18 +38,34 @@ cd /root/Zomboid/zomboid-web-manager
 npm install
 ```
 
-### 2. Generate Password Hash
+### 2. Initialize Database
+
+Run the database migrations to create the users and roles tables:
 
 ```bash
-node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('your-password', 10));"
+# Start PostgreSQL (if using Docker)
+npm run db:start
+
+# Run migrations
+psql $DATABASE_URL -f scripts/init-db.sql
 ```
 
-### 3. Configure Environment
+### 3. Create Admin User
+
+Use the reset-superadmin script to create the initial admin user:
+
+```bash
+./scripts/reset-superadmin.sh -p
+```
+
+This will generate a random password and create the admin user in the database.
+
+### 4. Configure Environment
 
 Create `.env.local`:
 
 ```bash
-ADMIN_PASSWORD_HASH=your_bcrypt_hash_here
+DATABASE_URL=postgresql://user:pass@localhost:5432/zomboid_manager
 SESSION_SECRET=$(openssl rand -base64 32)
 ZOMBOID_PATH=/root/Zomboid
 BACKUP_CONFIG_PATH=/root/Zomboid/backup-system/config/backup-config.json

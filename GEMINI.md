@@ -57,10 +57,66 @@ The application is typically deployed via a systemd service.
 - **Path Aliases**: Use `@/` to refer to the project root (e.g., `@/lib/db`, `@/components/ui/button`).
 - **API Responses**: Always return the format `{ success: boolean; data?: T; error?: string }`.
 
+### Naming Conventions
+| Type | Convention | Example |
+|------|------------|---------|
+| Files | kebab-case | `snapshot-manager.ts` |
+| Components | PascalCase | `ServerCard` |
+| Functions | camelCase | `getServers` |
+| Types/Interfaces | PascalCase | `Server`, `UserWithRole` |
+| Constants | UPPER_SNAKE | `SAVES_PATH`, `API_BASE` |
+| Hooks | camelCase + 'use' prefix | `useServers`, `useQueryClient` |
+
+### React Components
+- Functional components with hooks only.
+- Add `'use client'` for client components (no server components in client tree).
+- Destructure props, define interfaces before component.
+- Props interface named `[Component]Props`.
+
+```typescript
+'use client';
+import { Server } from '@/types';
+
+interface ServerCardProps {
+  server: Server;
+  onDelete: () => void;
+}
+
+export function ServerCard({ server, onDelete }: ServerCardProps) {
+  return <div className="bg-card rounded-lg border border-border">{server.name}</div>;
+}
+```
+
+### API Routes
+- Return consistent `ApiResponse<T>` format: `{ success: boolean, data?: T, error?: string }`.
+- Log errors with context: `console.error('Failed:', { userId }, error)`.
+- Use type guards: `error instanceof Error`.
+- Validate request body with manual validation (no Zod currently).
+- Use `requireAuth(request)` for protected routes.
+
+### React Query (TanStack Query v5)
+- Query keys as arrays: `['servers']`, `['snapshots', serverName]`.
+- Use `enabled: !!serverName` for conditional fetching.
+- Invalidate queries after mutations using `queryClient.invalidateQueries()`.
+- Use `useMutation` for POST/PUT/DELETE operations.
+
+### Tailwind CSS v4
+- Use `@import "tailwindcss"` in globals.css (not directives).
+- Use `@theme inline` for custom theme variables.
+- Use semantic colors: `bg-card`, `text-foreground`, `border-border`.
+- Custom CSS variables in `:root` for theming.
+
+### Anti-Patterns
+- **Don't use `any`**: Strict TypeScript; use `unknown` with type guards.
+- **Don't throw raw errors**: Wrap in user-friendly messages.
+- **Don't read files synchronously**: Use `fs/promises`.
+- **Don't bypass fetchApi**: Always use the wrapper in `lib/api.ts`.
+
 ### Testing Strategy
 - **Unit Tests**: Located in `__tests__/unit/`. Use `pg-mem` for database operations to avoid side effects.
 - **E2E Tests**: Located in `__tests__/e2e/`.
 - **Mocks**: Use `msw` for API mocking and `mock-fs` for file system simulations.
+- **Database**: `lib/db.ts` detects test environment and uses pg-mem automatically unless `USE_REAL_DATABASE=true`.
 
 ### Path Management
 Never hardcode paths. Use `lib/paths.ts` for centralized path resolution.
@@ -73,11 +129,17 @@ Never hardcode paths. Use `lib/paths.ts` for centralized path resolution.
 
 ---
 
-## Key Directories
+## Key Directories and Files
 - `app/`: Next.js pages and API routes.
 - `components/`: Reusable React components.
 - `hooks/`: Custom React hooks (mostly TanStack Query wrappers).
 - `lib/`: Core business logic (server-manager, db, parsers, mod-manager).
+  - `api.ts`: API client with `fetchApi<T>` wrapper.
+  - `auth.ts`: Session management.
+  - `db.ts`: Database connection.
+  - `config-manager.ts`: Backup config CRUD.
+  - `server-manager.ts`: Server lifecycle.
+  - `snapshot-manager.ts`: Backup/Restore logic.
 - `scripts/`: Bash scripts for backups, database initialization, and deployment.
 - `__tests__/`: Comprehensive test suite.
 
@@ -85,3 +147,13 @@ Never hardcode paths. Use `lib/paths.ts` for centralized path resolution.
 - **TMUX**: Servers run in detached tmux sessions named `pz-{serverName}`.
 - **INI Files**: Managed via `lib/ini-config-manager.ts` which preserves comments during writes.
 - **Permissions**: RBAC is enforced at the API route level; there is no global middleware for auth.
+
+## Environment Variables
+```bash
+DATABASE_URL=           # PostgreSQL connection string (required)
+SESSION_SECRET=         # Random secret (32+ chars) for session encryption
+ZOMBOID_PATH=/root/Zomboid
+BACKUP_CONFIG_PATH=/root/Zomboid/backup-system/config/backup-config.json
+SNAPSHOTS_PATH=/root/Zomboid/backup-system/snapshots
+USE_REAL_DATABASE=true  # Set to run tests against real TimescaleDB
+```
