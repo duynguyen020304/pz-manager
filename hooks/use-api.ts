@@ -232,6 +232,26 @@ export function useSaveConfig() {
   });
 }
 
+export function useSchedules() {
+  return useQuery({
+    queryKey: ['schedules'],
+    queryFn: api.getSchedules
+  });
+}
+
+// Schedule actions
+export function useTriggerBackup() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (scheduleName: string) => api.triggerBackup(scheduleName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['config'] });
+    }
+  });
+}
+
 export function useUpdateSchedule() {
   const queryClient = useQueryClient();
 

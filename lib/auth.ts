@@ -3,7 +3,8 @@ import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { query, queryOne } from './db';
 import { verifyPassword, getUserByUsernameWithRole, getUserByIdWithRole, updateLastLogin } from './user-manager';
-import type { UserWithRole, Session } from '@/types';
+import type { UserWithRole, Session, AuthResult } from '@/types';
+import { validateTokenFormat, hashToken, getTokenWithUser, updateTokenLastUsed } from './api-token-manager';
 
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const SESSION_DURATION = 60 * 60 * 24; // 24 hours in seconds
@@ -199,23 +200,103 @@ export async function getCurrentUser(
 }
 
 /**
- * Require authentication - throws if not authenticated
+ * Require authentication - supports session cookie OR Bearer token
+ * Returns AuthResult with user and auth method details
  */
-export async function requireAuth(request: NextRequest): Promise<UserWithRole> {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    throw new Error('Authentication required');
+export async function requireAuth(request: NextRequest): Promise<AuthResult> {
+  // Try session cookie first
+  const sessionUser = await getCurrentUser(request);
+  if (sessionUser) {
+    return { user: sessionUser, method: 'session' };
   }
-  return user;
+
+  // Try Bearer token in Authorization header
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    return await authenticateToken(token, request);
+  }
+
+  throw new Error('Authentication required');
 }
 
 /**
- * Check if user has permission
+ * Authenticate via API token
+ */
+async function authenticateToken(
+  token: string,
+  request: NextRequest
+): Promise<AuthResult> {
+  // Validate format first (fast reject)
+  if (!validateTokenFormat(token)) {
+    throw new Error('Invalid token format');
+  }
+
+  const tokenHash = hashToken(token);
+
+  // Lookup token with user join
+  const row = await getTokenWithUser(tokenHash);
+
+  if (!row) {
+    throw new Error('Invalid token');
+  }
+
+  if (!row.isActive) {
+    throw new Error('Token has been revoked');
+  }
+
+  if (row.expiresAt && new Date() > row.expiresAt) {
+    throw new Error('Token has expired');
+  }
+
+  if (!row.isActiveUser) {
+    throw new Error('User account is disabled');
+  }
+
+  // Update last used (fire-and-forget, don't await)
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const ipAddress = typeof forwardedFor === 'string'
+    ? forwardedFor.split(',')[0].trim()
+    : null;
+
+  updateTokenLastUsed(row.tokenId, ipAddress);
+
+  const user: UserWithRole = {
+    id: row.userId,
+    username: row.username,
+    email: row.email,
+    roleId: row.roleId,
+    isActive: row.isActiveUser,
+    lastLoginAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    role: {
+      id: row.roleId,
+      name: row.roleName,
+      description: row.roleDescription,
+      permissions: row.rolePermissions,
+      isSystem: row.roleIsSystem,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  };
+
+  return {
+    user,
+    method: 'token',
+    tokenId: row.tokenId,
+    scopes: row.scopes || undefined,
+  };
+}
+
+/**
+ * Check if user has permission, considering token scopes if applicable
  */
 export async function checkPermission(
   user: UserWithRole,
   resource: string,
-  action: string
+  action: string,
+  tokenScopes?: Record<string, string[]>
 ): Promise<boolean> {
   // Superadmin has all permissions
   if (user.role?.name === 'superadmin' || user.roleId === 1) {
@@ -224,8 +305,22 @@ export async function checkPermission(
 
   if (!user.role) return false;
 
+  // If token has explicit scopes, check those first
+  if (tokenScopes && Object.keys(tokenScopes).length > 0) {
+    // Check wildcard in token scopes
+    if (tokenScopes['*']?.includes('*')) {
+      return true;
+    }
+
+    // Check specific resource in token scopes
+    const tokenActions = tokenScopes[resource];
+    if (!tokenActions?.includes(action) && !tokenActions?.includes('*')) {
+      return false;
+    }
+  }
+
   const permissions = user.role.permissions;
-  
+
   // Check wildcard resource permission
   if (permissions['*']) {
     const wildcardActions = permissions['*'];

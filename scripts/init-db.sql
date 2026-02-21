@@ -161,6 +161,49 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================
+-- API TOKENS TABLE (Personal Access Tokens)
+-- ============================================
+CREATE TABLE IF NOT EXISTS api_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) UNIQUE NOT NULL,  -- SHA-256 hash (64 hex chars)
+    name VARCHAR(100) NOT NULL,               -- User-provided name
+    description TEXT,                         -- Optional description
+    scopes JSONB DEFAULT '{}',                -- Optional scoped permissions
+    expires_at TIMESTAMPTZ,                   -- Optional expiration
+    last_used_at TIMESTAMPTZ,                 -- Last API usage timestamp
+    last_used_ip INET,                        -- Last IP address used
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for efficient lookups
+CREATE INDEX IF NOT EXISTS idx_api_tokens_token_hash ON api_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_user_id ON api_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_is_active ON api_tokens(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_api_tokens_expires_at ON api_tokens(expires_at);
+
+-- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_api_tokens_updated_at ON api_tokens;
+CREATE TRIGGER update_api_tokens_updated_at
+    BEFORE UPDATE ON api_tokens
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to clean up expired tokens
+CREATE OR REPLACE FUNCTION cleanup_expired_api_tokens()
+RETURNS INTEGER AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM api_tokens WHERE expires_at < NOW();
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
 -- VIEWS
 -- ============================================
 

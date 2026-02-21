@@ -267,6 +267,50 @@ export interface SessionWithUser extends Session {
   user: UserWithRole;
 }
 
+// ============================================
+// API TOKEN TYPES
+// ============================================
+
+export interface ApiToken {
+  id: string;
+  userId: number;
+  name: string;
+  description: string | null;
+  scopes: Record<string, string[]> | null;
+  expiresAt: Date | null;
+  lastUsedAt: Date | null;
+  lastUsedIp: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateTokenInput {
+  name: string;
+  description?: string;
+  scopes?: Record<string, string[]>;
+  expiresInDays?: number;
+}
+
+export interface UpdateTokenInput {
+  name?: string;
+  description?: string;
+  expiresAt?: Date;
+  scopes?: Record<string, string[]>;
+}
+
+export interface CreateTokenResult {
+  rawToken: string;  // Only returned once at creation
+  tokenInfo: ApiToken;
+}
+
+export interface AuthResult {
+  user: UserWithRole;
+  method: 'session' | 'token';
+  tokenId?: string;
+  scopes?: Record<string, string[]>;
+}
+
 export interface AuditLog {
   time: Date;
   userId: number | null;
