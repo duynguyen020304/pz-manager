@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import { BackupConfig, Schedule, CompressionConfig, IntegrityConfig, AutoRollbackConfig } from '@/types';
 import { BACKUP_CONFIG_PATH, SNAPSHOTS_PATH, BACKUP_SYSTEM_ROOT } from '@/lib/paths';
+import { backupScheduler } from '@/lib/backup-scheduler';
 
 const CONFIG_PATH = BACKUP_CONFIG_PATH;
 
@@ -59,22 +60,34 @@ export async function getEnabledSchedules(): Promise<Schedule[]> {
 }
 
 export async function updateSchedule(
-  name: string, 
+  name: string,
   updates: Partial<Schedule>
 ): Promise<void> {
   const config = await loadConfig();
   const scheduleIndex = config.schedules.findIndex(s => s.name === name);
-  
+
   if (scheduleIndex === -1) {
     throw new Error(`Schedule '${name}' not found`);
   }
-  
-  config.schedules[scheduleIndex] = {
-    ...config.schedules[scheduleIndex],
+
+  const existingSchedule = config.schedules[scheduleIndex];
+  const updatedSchedule = {
+    ...existingSchedule,
     ...updates
   };
-  
+
+  config.schedules[scheduleIndex] = updatedSchedule;
+
   await saveConfig(config);
+
+  if ('enabled' in updates) {
+    try {
+      await backupScheduler.setScheduleEnabled(name, updatedSchedule.enabled);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`[config-manager] Failed to sync systemd timer for schedule '${name}' (config saved, degraded mode):`, errorMsg);
+    }
+  }
 }
 
 export async function addServer(name: string): Promise<void> {
