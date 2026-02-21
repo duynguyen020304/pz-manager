@@ -177,6 +177,38 @@ class BackupScheduler {
       };
     }
   }
+
+  public async setScheduleEnabled(scheduleName: string, enabled: boolean): Promise<void> {
+    const timerName = `zomboid-backup@${scheduleName}.timer`;
+
+    try {
+      const { stdout } = await execCommand('systemctl', ['show', timerName, '--property=UnitFileState']);
+      const unitFileState = stdout.trim().split('=')[1] || '';
+      const isEnabled = unitFileState === 'enabled';
+
+      if (enabled && isEnabled) {
+        console.log(`[BackupScheduler] Timer ${timerName} is already enabled`);
+        return;
+      }
+      if (!enabled && !isEnabled) {
+        console.log(`[BackupScheduler] Timer ${timerName} is already disabled`);
+        return;
+      }
+
+      if (enabled) {
+        await execCommand('systemctl', ['enable', timerName]);
+        await execCommand('systemctl', ['start', timerName]);
+        console.log(`[BackupScheduler] Enabled timer ${timerName}`);
+      } else {
+        await execCommand('systemctl', ['stop', timerName]);
+        await execCommand('systemctl', ['disable', timerName]);
+        console.log(`[BackupScheduler] Disabled timer ${timerName}`);
+      }
+    } catch (error) {
+      console.error(`[BackupScheduler] Failed to set schedule ${scheduleName} enabled=${enabled}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const backupScheduler = BackupScheduler.getInstance();
