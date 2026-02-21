@@ -1,20 +1,22 @@
 'use client';
 
-import { 
-  useConfig, 
-  useUpdateSchedule, 
-  useUpdateCompression, 
+import {
+  useConfig,
+  useSchedules,
+  useUpdateSchedule,
+  useTriggerBackup,
+  useUpdateCompression,
   useUpdateIntegrity,
   useUpdateAutoRollback
 } from '@/hooks/use-api';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BackupConfig, Schedule, MonitorConfig, MonitorConfigInput } from '@/types';
-import { 
-  Settings, 
-  Clock, 
-  Server, 
-  Sliders, 
+import { BackupConfig, Schedule, ScheduleWithStatus, MonitorConfig, MonitorConfigInput } from '@/types';
+import {
+  Settings,
+  Clock,
+  Server,
+  Sliders,
   CheckCircle2,
   AlertCircle,
   AlertTriangle,
@@ -27,7 +29,8 @@ import {
   Archive,
   RotateCcw,
   Skull,
-  Activity
+  Activity,
+  Play
 } from 'lucide-react';
 
 const tabs = [
@@ -135,7 +138,10 @@ export default function ConfigPage() {
 
 // Schedules Tab
 function SchedulesTab({ config }: { config: BackupConfig }) {
+  const { data: schedulesWithStatus } = useSchedules();
   const updateSchedule = useUpdateSchedule();
+  const triggerBackup = useTriggerBackup();
+  const [triggeredJobId, setTriggeredJobId] = useState<{ [key: string]: string | null }>({});
 
   const handleToggle = async (name: string, enabled: boolean) => {
     try {
@@ -151,15 +157,15 @@ function SchedulesTab({ config }: { config: BackupConfig }) {
 
     const currentIndex = retentionOptions.indexOf(schedule.retention);
     let newIndex;
-    
+
     if (direction === 'up') {
       newIndex = Math.min(currentIndex + 1, retentionOptions.length - 1);
     } else {
       newIndex = Math.max(currentIndex - 1, 0);
     }
-    
+
     const newRetention = retentionOptions[newIndex];
-    
+
     if (newRetention !== schedule.retention) {
       try {
         await updateSchedule.mutateAsync({ name, updates: { retention: newRetention } });
@@ -169,6 +175,23 @@ function SchedulesTab({ config }: { config: BackupConfig }) {
     }
   };
 
+  const handleTriggerBackup = async (scheduleName: string) => {
+    try {
+      const result = await triggerBackup.mutateAsync(scheduleName);
+      setTriggeredJobId((prev) => ({ ...prev, [scheduleName]: result.jobId }));
+      setTimeout(() => {
+        setTriggeredJobId((prev) => ({ ...prev, [scheduleName]: null }));
+      }, 5000);
+    } catch (error) {
+      console.error('Failed to trigger backup:', error);
+    }
+  };
+
+  const schedulesToDisplay = schedulesWithStatus || config.schedules.map((s: Schedule) => ({
+    ...s,
+    status: { exists: false, active: false, nextRun: null }
+  }));
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -177,12 +200,12 @@ function SchedulesTab({ config }: { config: BackupConfig }) {
       </div>
 
       <div className="space-y-4">
-        {config.schedules.map((schedule: Schedule) => (
-          <div 
+        {schedulesToDisplay.map((schedule: ScheduleWithStatus) => (
+          <div
             key={schedule.name}
             className={`p-4 rounded-lg border transition-colors ${
-              schedule.enabled 
-                ? 'bg-muted/30 border-border' 
+              schedule.enabled
+                ? 'bg-muted/30 border-border'
                 : 'bg-muted/10 border-border/50 opacity-60'
             }`}
           >
@@ -198,10 +221,30 @@ function SchedulesTab({ config }: { config: BackupConfig }) {
                     <ToggleLeft className="w-8 h-8 text-muted-foreground" />
                   )}
                 </button>
-                
+
                 <div>
-                  <h3 className="font-medium text-foreground capitalize">{schedule.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-foreground capitalize">{schedule.name}</h3>
+                    {schedule.enabled && schedule.status.active && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
+                        Active
+                      </span>
+                    )}
+                    {schedule.enabled && !schedule.status.active && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/20">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">{formatInterval(schedule.interval)}</p>
+                  {schedule.status.nextRun && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Next run: {new Date(schedule.status.nextRun).toLocaleString()}
+                    </p>
+                  )}
+                  {!schedule.status.exists && schedule.enabled && (
+                    <p className="text-xs text-yellow-600 mt-1">Timer not yet created</p>
+                  )}
                 </div>
               </div>
 
@@ -226,6 +269,24 @@ function SchedulesTab({ config }: { config: BackupConfig }) {
                     </button>
                   </div>
                 </div>
+                <button
+                  onClick={() => handleTriggerBackup(schedule.name)}
+                  disabled={triggerBackup.isPending || !schedule.enabled}
+                  className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {triggerBackup.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                  <span className="text-sm font-medium">Backup Now</span>
+                </button>
+                {triggeredJobId[schedule.name] && (
+                  <div className="flex items-center gap-2 text-xs text-green-600">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Started: {triggeredJobId[schedule.name]!.slice(0, 12)}...</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

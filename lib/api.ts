@@ -100,6 +100,28 @@ export async function saveConfig(config: BackupConfig): Promise<{ message: strin
   });
 }
 
+export interface ScheduleWithStatus {
+  name: string;
+  interval: string;
+  enabled: boolean;
+  retention: number;
+  status: {
+    exists: boolean;
+    active: boolean;
+    nextRun: Date | null;
+  };
+}
+
+export async function getSchedules(): Promise<ScheduleWithStatus[]> {
+  return fetchApi(`${API_BASE}/schedules`);
+}
+
+export async function triggerBackup(scheduleName: string): Promise<{ jobId: string; message: string }> {
+  return fetchApi(`${API_BASE}/schedules/${encodeURIComponent(scheduleName)}/trigger`, {
+    method: 'POST'
+  });
+}
+
 export async function updateSchedule(name: string, updates: Partial<{ enabled: boolean; retention: number }>): Promise<{ message: string }> {
   return fetchApi(`${API_BASE}/config`, {
     method: 'PATCH',

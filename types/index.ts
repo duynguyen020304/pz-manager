@@ -81,6 +81,16 @@ export interface Schedule {
   retention: number;
 }
 
+export interface TimerStatus {
+  exists: boolean;
+  active: boolean;
+  nextRun: Date | null;
+}
+
+export interface ScheduleWithStatus extends Schedule {
+  status: TimerStatus;
+}
+
 export interface NotificationConfig {
   enabled: boolean;
   onSuccess: boolean;
