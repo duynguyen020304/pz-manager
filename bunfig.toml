@@ -1,0 +1,19 @@
+[install]
+# Use exact versions from package-lock.json when available
+exact = true
+
+# Save exact versions to package.json
+save-exact = true
+
+[test]
+# Use bun's native test runner (compatible with vitest)
+# Run with: bun test
+# Setup files are loaded before tests
+setupFiles = ["./__tests__/setup/setup.ts", "./__tests__/e2e/setup.ts"]
+
+# Test environment
+env = { "NODE_ENV" = "test" }
+
+[run]
+# Generate lockfile (bun.lockb)
+lockfile = true
