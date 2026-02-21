@@ -27,8 +27,8 @@ npx vitest run --grep "should create user"  # Tests matching pattern
 npm run db:start    # Start TimescaleDB container
 docker-compose up -d
 docker-compose down  # Stop container
-npm run db:reset    # Reset database (down -v + up -d)
-npm run db:migrate  # Run migrations
+npm run db:reset    # Reset database volumes only (down -v + up -d, NO table creation)
+npm run db:migrate  # Run all migrations (create tables + seed admin user)
 npm run db:seed     # Seed database
 ```
 

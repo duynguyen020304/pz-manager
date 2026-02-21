@@ -41,7 +41,7 @@ journalctl -u zomboid-web-manager -f
 # Database
 npm run db:start     # Start TimescaleDB container
 npm run db:stop      # Stop container
-npm run db:reset     # Reset database
+npm run db:reset     # Reset database volumes only (down -v + up -d)
 ```
 
 ## Technology Stack

@@ -10,8 +10,8 @@
     "lint": "eslint",
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down",
-    "db:reset": "docker compose down -v && docker compose up -d && ./scripts/init-db.sh",
-    "db:migrate": "node scripts/migrate-admin.js"
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "db:migrate": "./scripts/init-db.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",

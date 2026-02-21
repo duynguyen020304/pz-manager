@@ -27,9 +27,16 @@ cat "$SCRIPT_DIR/migrations/add_logs_tables.sql" | docker exec -i zomboid-timesc
 echo "[4/5] Adding monitoring system tables..."
 cat "$SCRIPT_DIR/migrations/add_system_monitoring.sql" | docker exec -i zomboid-timescaledb psql -U zomboid_admin -d zomboid_manager
 
-# Step 5: Reset superadmin user
-echo "[5/5] Resetting superadmin user..."
-./scripts/reset-superadmin.sh
+# Step 5: Create admin user
+echo "[5/5] Creating admin user..."
+# Load environment variables from .env.local if it exists
+if [ -f "$PROJECT_DIR/.env.local" ]; then
+    echo "Loading environment from .env.local..."
+    set -a
+    source "$PROJECT_DIR/.env.local"
+    set +a
+fi
+cd "$PROJECT_DIR" && node scripts/migrate-admin.js
 
 echo "========================================="
 echo "Database initialization complete!"

@@ -7,6 +7,7 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE TABLE IF NOT EXISTS roles (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL,
+    display_name VARCHAR(100) NOT NULL,
     description TEXT,
     permissions JSONB NOT NULL DEFAULT '{}',
     is_system BOOLEAN DEFAULT false,
@@ -82,13 +83,13 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, 
 -- ============================================
 -- DEFAULT ROLES
 -- ============================================
-INSERT INTO roles (name, description, permissions, is_system) VALUES
-    ('superadmin', 'Full system access - can perform any action', 
+INSERT INTO roles (name, display_name, description, permissions, is_system) VALUES
+    ('superadmin', 'Super Admin', 'Full system access - can perform any action',
      '{"*": ["*"]}'::jsonb, true)
 ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO roles (name, description, permissions, is_system) VALUES
-    ('admin', 'Administrator - can manage servers, backups, schedules, and users', 
+INSERT INTO roles (name, display_name, description, permissions, is_system) VALUES
+    ('admin', 'Administrator', 'Can manage servers, backups, schedules, and users',
      '{
         "servers": ["view", "start", "stop", "configure"],
         "backups": ["view", "create", "restore", "delete"],
@@ -100,8 +101,8 @@ INSERT INTO roles (name, description, permissions, is_system) VALUES
      }'::jsonb, true)
 ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO roles (name, description, permissions, is_system) VALUES
-    ('operator', 'Operator - can start/stop servers and view logs', 
+INSERT INTO roles (name, display_name, description, permissions, is_system) VALUES
+    ('operator', 'Operator', 'Can start/stop servers and view logs',
      '{
         "servers": ["view", "start", "stop"],
         "backups": ["view"],
@@ -110,8 +111,8 @@ INSERT INTO roles (name, description, permissions, is_system) VALUES
      }'::jsonb, true)
 ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO roles (name, description, permissions, is_system) VALUES
-    ('viewer', 'Viewer - read-only access to all resources', 
+INSERT INTO roles (name, display_name, description, permissions, is_system) VALUES
+    ('viewer', 'Viewer', 'Read-only access to all resources',
      '{
         "servers": ["view"],
         "backups": ["view"],
@@ -165,13 +166,14 @@ $$ LANGUAGE plpgsql;
 
 -- View for users with their role information
 CREATE OR REPLACE VIEW users_with_roles AS
-SELECT 
+SELECT
     u.id,
     u.username,
     u.email,
     u.password_hash,
     u.role_id,
     r.name as role_name,
+    r.display_name as role_display_name,
     r.description as role_description,
     r.permissions as role_permissions,
     u.is_active,

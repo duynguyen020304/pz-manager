@@ -40,27 +40,25 @@ npm install
 
 ### 2. Initialize Database
 
-Run the database migrations to create the users and roles tables:
+Start PostgreSQL and run migrations to create all tables and the admin user:
 
 ```bash
 # Start PostgreSQL (if using Docker)
 npm run db:start
 
-# Run migrations
-psql $DATABASE_URL -f scripts/init-db.sql
+# Run migrations (creates all tables + admin user)
+npm run db:migrate
 ```
 
-### 3. Create Admin User
+This will create all database tables and seed the initial admin user with a generated password.
 
-Use the reset-superadmin script to create the initial admin user:
-
+**Note:** If you need to reset the database completely (wiping all data):
 ```bash
-./scripts/reset-superadmin.sh -p
+npm run db:reset  # Only resets Docker volumes - does NOT create tables
+npm run db:migrate  # Run this after reset to recreate tables
 ```
 
-This will generate a random password and create the admin user in the database.
-
-### 4. Configure Environment
+### 3. Configure Environment
 
 Create `.env.local`:
 

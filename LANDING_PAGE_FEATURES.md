@@ -175,8 +175,8 @@ npm start            # Start production server on 127.0.0.1:3000
 # Database
 npm run db:start     # Start TimescaleDB container
 docker-compose up -d   # Alternative: Start TimescaleDB
-npm run db:reset    # Reset database (down -v + up -d)
-npm run db:migrate   # Run admin account setup
+npm run db:reset    # Reset database volumes only (down -v + up -d, NO table creation)
+npm run db:migrate  # Run all migrations (create tables + seed admin user)
 npm run db:seed      # Seed initial data
 
 # Testing
