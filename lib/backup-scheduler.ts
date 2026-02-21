@@ -1,8 +1,47 @@
+import { spawn } from 'child_process';
+
+async function execCommand(command: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args);
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout?.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+      } else {
+        const error = new Error(`Command failed with exit code ${code}`);
+        (error as Error & { stderr: string }).stderr = stderr;
+        reject(error);
+      }
+    });
+
+    child.on('error', (error) => {
+      (error as Error & { stderr: string }).stderr = stderr;
+      reject(error);
+    });
+  });
+}
+
 export interface SchedulerStatus {
   isRunning: boolean;
   lastCheck: Date | null;
   totalChecks: number;
   lastError: string | null;
+}
+
+export interface TimerStatus {
+  exists: boolean;
+  active: boolean;
+  nextRun: Date | null;
 }
 
 class BackupScheduler {
@@ -72,6 +111,71 @@ class BackupScheduler {
 
   public getStatus(): SchedulerStatus {
     return { ...this.status };
+  }
+
+  public async getTimerStatus(scheduleName: string): Promise<TimerStatus> {
+    const timerName = `zomboid-backup@${scheduleName}.timer`;
+
+    try {
+      const { stdout } = await execCommand('systemctl', [
+        'show',
+        timerName,
+        '--property=ActiveState',
+        '--property=SubState',
+        '--property=NextElapseUSecRealtime',
+      ]);
+
+      const lines = stdout.split('\n').filter((line: string) => line.length > 0);
+      const properties = new Map<string, string>();
+
+      for (const line of lines) {
+        const [key, value] = line.split('=', 2);
+        if (key && value !== undefined) {
+          properties.set(key, value);
+        }
+      }
+
+      const activeState = properties.get('ActiveState');
+      const isActive = activeState === 'active';
+      const nextElapseUSec = properties.get('NextElapseUSecRealtime');
+      let nextRun: Date | null = null;
+
+      if (nextElapseUSec && nextElapseUSec !== '' && nextElapseUSec !== '0' && nextElapseUSec !== '0us' && nextElapseUSec !== 'infinity') {
+        if (/^\d+us$/.test(nextElapseUSec)) {
+          const us = BigInt(nextElapseUSec.replace('us', ''));
+          nextRun = new Date(Number(us / BigInt(1000)));
+        } else {
+          const parsed = new Date(nextElapseUSec);
+          if (!isNaN(parsed.getTime())) {
+            nextRun = parsed;
+          }
+        }
+      }
+
+      return {
+        exists: true,
+        active: isActive,
+        nextRun,
+      };
+    } catch (error) {
+      if (error instanceof Error && 'stderr' in error) {
+        const stderr = (error as { stderr?: string }).stderr;
+        if (stderr?.includes('Load failed') || stderr?.includes('not loaded')) {
+          return {
+            exists: false,
+            active: false,
+            nextRun: null,
+          };
+        }
+      }
+
+      console.error('[BackupScheduler] Failed to query timer status:', error);
+      return {
+        exists: false,
+        active: false,
+        nextRun: null,
+      };
+    }
   }
 }
 
