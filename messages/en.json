@@ -1,0 +1,571 @@
+{
+  "metadata": {
+    "title": "Zomboid Server Manager",
+    "description": "Manage Project Zomboid server backups and configuration"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "servers": "Servers",
+    "monitor": "Monitor",
+    "schedules": "Schedules",
+    "logs": "Logs",
+    "accounts": "Accounts",
+    "roles": "Roles",
+    "tokens": "API Tokens",
+    "settings": "Settings",
+    "backups": "Backups",
+    "rollback": "Rollback",
+    "logout": "Logout",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "closeSidebar": "Close sidebar",
+    "zomboid": "Zomboid",
+    "backupManager": "Backup Manager"
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "servers": "Servers",
+    "schedules": "Schedules",
+    "logs": "Logs",
+    "settings": "Settings"
+  },
+  "common": {
+    "loading": "Loading",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "create": "Create",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "remove": "Remove",
+    "search": "Search",
+    "filter": "Filter",
+    "refresh": "Refresh",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "confirm": "Confirm",
+    "submit": "Submit",
+    "yes": "Yes",
+    "no": "No",
+    "on": "On",
+    "off": "Off",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "never": "Never",
+    "justNow": "Just now",
+    "ago": "ago",
+    "in": "in",
+    "minutes": "min",
+    "hours": "h",
+    "days": "d",
+    "viewAll": "View all",
+    "manage": "Manage",
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "page": "Page",
+    "user": "User",
+    "admin": "Admin",
+    "description": "Description",
+    "name": "Name",
+    "changeLanguage": "Change Language",
+    "open": "Open",
+    "page": "Page"
+  },
+  "actions": {
+    "signIn": "Sign In",
+    "signingIn": "Signing in...",
+    "startServer": "Start Server",
+    "stopServer": "Stop Server",
+    "starting": "Starting...",
+    "stopping": "Stopping...",
+    "openConsole": "Open Console",
+    "rollbackServer": "Rollback Server",
+    "configureSettings": "Configure Settings",
+    "manageMods": "Manage Mods",
+    "addServer": "Add Server",
+    "addUser": "Add User",
+    "createToken": "Create Token",
+    "revoke": "Revoke",
+    "copy": "Copy",
+    "copied": "Copied",
+    "restore": "Restore",
+    "backupNow": "Backup Now",
+    "trigger": "Trigger",
+    "ingest": "Ingest",
+    "watch": "Watch",
+    "stopWatching": "Stop",
+    "startOver": "Start Over",
+    "tryAgain": "Try again",
+    "detectServers": "Detect Servers",
+    "createRole": "Create Role"
+  },
+  "status": {
+    "running": "Running",
+    "stopped": "Stopped",
+    "starting": "Starting...",
+    "stopping": "Stopping...",
+    "online": "Online",
+    "offline": "Offline",
+    "valid": "Valid",
+    "invalid": "Invalid",
+    "systemOnline": "System Online",
+    "healthy": "Healthy",
+    "overdue": "Overdue",
+    "notScheduled": "Not scheduled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "revoked": "Revoked",
+    "expired": "Expired",
+    "completed": "Completed",
+    "failed": "Failed",
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "current": "Current"
+  },
+  "pages": {
+    "login": {
+      "title": "Zomboid Server Manager",
+      "subtitle": "Manage your Project Zomboid server backups",
+      "username": "Username",
+      "password": "Password",
+      "usernamePlaceholder": "Enter username",
+      "passwordPlaceholder": "Enter password",
+      "loginFailed": "Login failed",
+      "protectedArea": "Protected area. Authorized access only.",
+      "logoutFailed": "Logout failed"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Overview of your Project Zomboid backup system",
+      "stats": {
+        "totalServers": "Total Servers",
+        "runningServers": "Running Servers",
+        "activeSchedules": "Active Schedules",
+        "storageUsed": "Storage Used",
+        "retentionCount": "Retention Count"
+      },
+      "servers": {
+        "title": "Servers",
+        "server": "Server",
+        "status": "Status",
+        "lastBackup": "Last Backup",
+        "nextBackup": "Next Backup",
+        "actions": "Actions",
+        "noServers": "No servers configured",
+        "addServer": "Add a server"
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "restoreBackup": {
+          "label": "Restore Backup",
+          "description": "Rollback to a previous snapshot"
+        },
+        "addServer": {
+          "label": "Add Server",
+          "description": "Configure a new server for backups"
+        },
+        "editSchedules": {
+          "label": "Edit Schedules",
+          "description": "Manage backup intervals"
+        }
+      },
+      "activeSchedules": "Active Schedules",
+      "noActiveSchedules": "No active schedules",
+      "manageSchedules": "Manage schedules"
+    },
+    "servers": {
+      "title": "Servers",
+      "description": "Manage your Project Zomboid servers",
+      "noServersConfigured": "No servers configured",
+      "addFirstServer": "Add your first server to start managing backups and operations.",
+      "gridView": "Grid",
+      "listView": "List",
+      "config": "Config",
+      "db": "DB",
+      "ini": "INI",
+      "pid": "PID",
+      "uptime": "Uptime",
+      "port": "Port",
+      "valid": "Valid",
+      "closeMenu": "Close menu",
+      "openMenu": "Open menu"
+    },
+    "accounts": {
+      "title": "Accounts",
+      "description": "Manage users and their roles",
+      "stats": {
+        "totalUsers": "Total Users",
+        "activeUsers": "Active Users",
+        "inactiveUsers": "Inactive Users"
+      },
+      "search": {
+        "placeholder": "Search users..."
+      },
+      "filters": {
+        "allRoles": "All Roles",
+        "allStatus": "All Status"
+      },
+      "table": {
+        "user": "User",
+        "role": "Role",
+        "status": "Status",
+        "lastLogin": "Last Login",
+        "actions": "Actions"
+      },
+      "noUsers": "No users found",
+      "noUsersMatch": "No users match your filters",
+      "addFirstUser": "Add your first user",
+      "noRole": "No Role"
+    },
+    "roles": {
+      "title": "Roles",
+      "description": "Manage roles and permissions",
+      "stats": {
+        "total": "Total Roles",
+        "system": "System Roles",
+        "custom": "Custom Roles"
+      },
+      "about": {
+        "title": "About Roles",
+        "systemRolesCannotDelete": "System roles cannot be deleted or renamed",
+        "superadminAccess": "Superadmin has full access to all features",
+        "changesImmediate": "Changes to role permissions apply immediately to all users with that role",
+        "deleteRemoves": "Deleting a role will remove it from all assigned users"
+      },
+      "noRoles": "No roles found",
+      "createFirstRole": "Create your first role"
+    },
+    "tokens": {
+      "title": "API Tokens",
+      "description": "Manage personal access tokens for API authentication",
+      "yourTokens": "Your Tokens",
+      "createToken": "Create New Token",
+      "tokenName": "Token Name",
+      "tokenNamePlaceholder": "e.g., Production API",
+      "tokenDescription": "Description",
+      "tokenDescriptionPlaceholder": "Optional description for this token",
+      "expiration": "Expiration",
+      "expirationOptions": {
+        "never": "Never",
+        "30days": "30 days",
+        "60days": "60 days",
+        "90days": "90 days",
+        "6months": "6 months",
+        "1year": "1 year"
+      },
+      "tokenCreated": "Token created successfully",
+      "copyNow": "Copy this token now. You won't be able to see it again.",
+      "security": {
+        "title": "Security Best Practices",
+        "shownOnce": "Tokens are only shown once at creation time",
+        "storeSecurely": "Store tokens securely and never share them",
+        "useExpiration": "Use expiration dates for added security",
+        "revokeUnused": "Revoke tokens you no longer need"
+      },
+      "noTokens": "No API tokens yet",
+      "createFirstToken": "Create your first personal access token to authenticate with the API",
+      "created": "Created",
+      "expires": "Expires",
+      "lastUsed": "Last used",
+      "ip": "IP",
+      "modal": {
+        "revokeTitle": "Revoke Token",
+        "revokeMessage": "Are you sure you want to revoke this token? Any applications using this token will lose access immediately.",
+        "deleteTitle": "Delete Token",
+        "deleteMessage": "Are you sure you want to permanently delete this token? This action cannot be undone.",
+        "confirmRevoke": "Revoke",
+        "confirmDelete": "Delete"
+      }
+    },
+    "logs": {
+      "title": "Logs",
+      "description": "View backup operations, player events, chat, and server activity",
+      "server": "Server",
+      "running": "Running",
+      "all": "All",
+      "selectServers": "Select servers to watch",
+      "noLogs": "No logs found",
+      "adjustFilters": "Try adjusting your filters",
+      "ingestPrompt": "No logs have been ingested yet. Click \"Ingest\" to parse log files.",
+      "watching": {
+        "title": "Watching {count} file{count, plural, one {} other {s}}",
+        "stop": "Stop"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Manage backup schedules, servers, and system settings",
+      "tabs": {
+        "schedules": "Schedules",
+        "servers": "Servers",
+        "monitoring": "Monitoring",
+        "settings": "Settings",
+        "rollback": "Rollback"
+      },
+      "schedules": {
+        "title": "Backup Schedules",
+        "description": "Configure when backups are created and how long they are kept",
+        "retention": "Retention",
+        "nextRun": "Next run",
+        "timerNotCreated": "Timer not yet created"
+      },
+      "servers": {
+        "title": "Configured Servers",
+        "description": "Manage which servers are included in backups",
+        "noServers": "No servers configured",
+        "hint": "To add or remove servers, use the {link} page."
+      },
+      "settings": {
+        "title": "Backup Settings",
+        "description": "Configure compression and integrity verification",
+        "compression": {
+          "title": "Compression",
+          "description": "Compress backups to save disk space",
+          "level": "Compression Level",
+          "levelDescription": "Higher levels = smaller files but slower backups",
+          "fast": "Fast",
+          "balanced": "Balanced",
+          "max": "Max Compression"
+        },
+        "integrity": {
+          "title": "Integrity Verification",
+          "description": "Verify backup integrity with checksums",
+          "verifyAfterBackup": "Verify after backup",
+          "verifyAfterBackupDesc": "Check integrity immediately after creating backup",
+          "verifyAfterRestore": "Verify after restore",
+          "verifyAfterRestoreDesc": "Check integrity after restoring from backup"
+        }
+      },
+      "rollback": {
+        "title": "Automatic Rollback on Player Death",
+        "description": "Automatically restore the server to a previous state when a player dies",
+        "enable": "Enable Auto-Rollback",
+        "enableDesc": "Automatically rollback when a player dies",
+        "snapshotSchedule": "Snapshot Schedule",
+        "snapshotScheduleDesc": "Which backup schedule to use for rollback",
+        "cooldown": "Cooldown Period",
+        "cooldownDesc": "Minutes to wait before another rollback can occur",
+        "notifyPlayers": "Notify Players",
+        "notifyPlayersDesc": "Send a server message when auto-rollback occurs",
+        "warning": {
+          "title": "Important Warning",
+          "message": "Auto-rollback will restore the entire server to a previous state when any player dies. This will undo all progress made since the selected snapshot was taken. Use with caution and ensure frequent backups are enabled."
+        }
+      },
+      "monitoring": {
+        "title": "Performance Monitoring",
+        "description": "Configure system performance monitoring and spike detection",
+        "enable": "Enable Monitoring",
+        "enableDesc": "Collect system performance metrics",
+        "pollingInterval": "Polling Interval",
+        "pollingIntervalDesc": "How often to collect metrics (seconds)",
+        "pollingRecommendation": "Recommended: 5 seconds for real-time monitoring, 30+ seconds for reduced resource usage",
+        "dataRetention": "Data Retention",
+        "dataRetentionDesc": "How long to keep metric history (days)",
+        "retentionNote": "Older metrics are automatically deleted. Lower values reduce database size.",
+        "spikeDetection": "Spike Detection",
+        "spikeDetectionDesc": "Automatic detection of performance spikes",
+        "cpuSpikeThreshold": "CPU Spike Threshold",
+        "cpuCriticalThreshold": "CPU Critical Threshold",
+        "memorySpikeThreshold": "Memory Spike Threshold",
+        "memoryCriticalThreshold": "Memory Critical Threshold",
+        "sustained": "sustained",
+        "spikeNote": "Spike detection is optimized for Project Zomboid servers. The algorithm uses sustained detection (multiple consecutive samples) to avoid false positives from the game's random CPU spikes. Adjust thresholds in database if needed."
+      }
+    },
+    "rollbackWizard": {
+      "title": "Rollback Wizard",
+      "description": "Restore your Project Zomboid server from a backup snapshot",
+      "steps": {
+        "selectServer": {
+          "title": "Select Server",
+          "description": "Choose which server to restore"
+        },
+        "selectBackup": {
+          "title": "Select Backup",
+          "description": "Choose a snapshot to restore from"
+        },
+        "preview": {
+          "title": "Preview",
+          "description": "Review snapshot details and warnings"
+        },
+        "confirm": {
+          "title": "Confirm",
+          "description": "Confirm the restore operation"
+        },
+        "progress": {
+          "title": "Progress",
+          "description": "Monitor restore progress"
+        }
+      },
+      "starting": "Starting...",
+      "restoreServer": "Restore Server"
+    },
+    "schedules": {
+      "title": "Schedules",
+      "description": "Manage backup schedules and retention policies",
+      "addSchedule": "Add Schedule",
+      "intervals": {
+        "5min": "Every 5 min",
+        "10min": "Every 10 min",
+        "30min": "Every 30 min",
+        "hourly": "Hourly",
+        "daily": "Daily",
+        "weekly": "Weekly"
+      },
+      "status": {
+        "active": "Active",
+        "paused": "Paused"
+      },
+      "retention": "Retention: {count} backups",
+      "empty": {
+        "title": "No schedules configured",
+        "description": "Create your first backup schedule to get started"
+      },
+      "modal": {
+        "title": "Add New Schedule",
+        "nameLabel": "Schedule Name",
+        "namePlaceholder": "e.g., hourly-backup",
+        "intervalLabel": "Interval",
+        "retentionLabel": "Retention (number of backups to keep)",
+        "retentionHint": "Older backups beyond this count will be automatically deleted",
+        "enabledLabel": "Enable schedule immediately",
+        "cancel": "Cancel",
+        "save": "Save Schedule",
+        "saving": "Saving..."
+      },
+      "tooltips": {
+        "pause": "Pause schedule",
+        "resume": "Resume schedule",
+        "delete": "Delete schedule"
+      },
+      "errors": {
+        "addFailed": "Failed to add schedule",
+        "deleteFailed": "Failed to delete schedule",
+        "updateFailed": "Failed to update schedule"
+      }
+    },
+    "backups": {
+      "title": "Backups",
+      "description": "Browse and manage backup snapshots",
+      "filters": {
+        "server": "Server",
+        "serverPlaceholder": "Select a server...",
+        "schedule": "Schedule",
+        "allSchedules": "All schedules"
+      },
+      "table": {
+        "timestamp": "Timestamp",
+        "schedule": "Schedule",
+        "size": "Size",
+        "files": "Files",
+        "actions": "Actions"
+      },
+      "empty": {
+        "selectServer": {
+          "title": "Select a server",
+          "description": "Choose a server to view its backups"
+        },
+        "noBackups": {
+          "title": "No backups found",
+          "description": "No snapshots available for this server"
+        }
+      },
+      "tooltips": {
+        "rollback": "Rollback to this snapshot",
+        "delete": "Delete snapshot"
+      },
+      "summary": {
+        "totalSnapshots": "Total Snapshots",
+        "totalSize": "Total Size",
+        "latestBackup": "Latest Backup"
+      },
+      "modal": {
+        "deleteTitle": "Delete Snapshot?",
+        "confirmMessage": "Are you sure you want to delete this snapshot?",
+        "details": {
+          "date": "Date:",
+          "schedule": "Schedule:",
+          "size": "Size:"
+        },
+        "warning": "This action cannot be undone.",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "deleting": "Deleting..."
+      }
+    }
+    "monitor": {
+      "title": "Performance Monitoring",
+      "description": "Real-time system performance metrics and spike detection",
+      "status": {
+        "active": "Monitoring Active",
+        "inactive": "Monitoring Inactive"
+      },
+      "actions": {
+        "refresh": "Refresh"
+      },
+      "metrics": {
+        "cpu": "CPU Usage",
+        "memory": "Memory Usage",
+        "swap": "Swap Usage",
+        "network": "Network I/O",
+        "cores": "{count} cores",
+        "usagePercent": "Usage %"
+      },
+      "chart": {
+        "title": "Performance History",
+        "timeRanges": {
+          "1h": "1h",
+          "6h": "6h",
+          "24h": "24h"
+        },
+        "noData": "No historical data available"
+      },
+      "spikes": {
+        "title": "Recent Spike Events",
+        "description": "Detected performance spikes in the last 24 hours",
+        "total": "Total spikes",
+        "warning": "Warning",
+        "critical": "Critical",
+        "table": {
+          "time": "Time",
+          "metric": "Metric",
+          "severity": "Severity",
+          "change": "Change",
+          "duration": "Duration"
+        },
+        "empty": "No spike events detected in the last 24 hours"
+      }
+    },
+  },
+  "forms": {
+    "required": "Required",
+    "optional": "Optional",
+    "validation": {
+      "required": "This field is required",
+      "invalid": "Invalid value"
+    }
+  },
+  "errors": {
+    "failedToLoad": "Failed to load",
+    "failedToLoadConfig": "Failed to load configuration",
+    "failedToLoadMonitoringConfig": "Failed to load monitoring configuration",
+    "failedToLoadTokens": "Failed to load tokens",
+    "failedToLoadUsers": "Failed to load users",
+    "generic": "Something went wrong"
+  },
+  "intervals": {
+    "5min": "Every 5 min",
+    "10min": "Every 10 min",
+    "30min": "Every 30 min",
+    "hourly": "Hourly",
+    "daily": "Daily",
+    "weekly": "Weekly"
+  }
+}
