@@ -499,7 +499,7 @@
         "delete": "Delete",
         "deleting": "Deleting..."
       }
-    }
+    },
     "monitor": {
       "title": "Performance Monitoring",
       "description": "Real-time system performance metrics and spike detection",
@@ -542,7 +542,7 @@
         },
         "empty": "No spike events detected in the last 24 hours"
       }
-    },
+    }
   },
   "forms": {
     "required": "Required",
