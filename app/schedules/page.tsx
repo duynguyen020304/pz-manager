@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useConfig, useSaveConfig } from '@/hooks/use-api';
 import { useState } from 'react';
 import {
@@ -17,22 +18,23 @@ import {
 import { Schedule } from '@/types';
 
 const intervalOptions = [
-  { value: '*/5 * * * *', label: 'Every 5 min', short: '5min' },
-  { value: '*/10 * * * *', label: 'Every 10 min', short: '10min' },
-  { value: '*/30 * * * *', label: 'Every 30 min', short: '30min' },
-  { value: '0 * * * *', label: 'Hourly', short: 'hourly' },
-  { value: '0 0 * * *', label: 'Daily', short: 'daily' },
-  { value: '0 1 * * *', label: 'Daily', short: 'daily' },
-  { value: '0 2 * * *', label: 'Daily', short: 'daily' },
-  { value: '0 3 * * *', label: 'Daily', short: 'daily' },
-  { value: '0 0 * * 0', label: 'Weekly', short: 'weekly' },
-  { value: '0 1 * * 0', label: 'Weekly', short: 'weekly' },
-  { value: '0 2 * * 0', label: 'Weekly', short: 'weekly' },
-  { value: '0 3 * * 0', label: 'Weekly', short: 'weekly' },
-  { value: '0 4 * * 0', label: 'Weekly', short: 'weekly' },
+  { value: '*/5 * * * *', short: '5min' },
+  { value: '*/10 * * * *', short: '10min' },
+  { value: '*/30 * * * *', short: '30min' },
+  { value: '0 * * * *', short: 'hourly' },
+  { value: '0 0 * * *', short: 'daily' },
+  { value: '0 1 * * *', short: 'daily' },
+  { value: '0 2 * * *', short: 'daily' },
+  { value: '0 3 * * *', short: 'daily' },
+  { value: '0 0 * * 0', short: 'weekly' },
+  { value: '0 1 * * 0', short: 'weekly' },
+  { value: '0 2 * * 0', short: 'weekly' },
+  { value: '0 3 * * 0', short: 'weekly' },
+  { value: '0 4 * * 0', short: 'weekly' },
 ];
 
 export default function SchedulesPage() {
+  const t = useTranslations('pages.schedules');
   const { data: config, isLoading } = useConfig();
   const saveConfig = useSaveConfig();
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -62,7 +64,7 @@ export default function SchedulesPage() {
       });
       setSaveError(null);
     } catch (error) {
-      setSaveError('Failed to add schedule');
+      setSaveError(t('errors.addFailed'));
       console.error('Failed to add schedule:', error);
     }
   };
@@ -78,7 +80,7 @@ export default function SchedulesPage() {
       });
       setSaveError(null);
     } catch (error) {
-      setSaveError('Failed to delete schedule');
+      setSaveError(t('errors.deleteFailed'));
       console.error('Failed to delete schedule:', error);
     }
   };
@@ -96,21 +98,22 @@ export default function SchedulesPage() {
       });
       setSaveError(null);
     } catch (error) {
-      setSaveError('Failed to update schedule');
+      setSaveError(t('errors.updateFailed'));
       console.error('Failed to update schedule:', error);
     }
   };
 
   const getIntervalLabel = (interval: string) => {
-    return intervalOptions.find(opt => opt.value === interval)?.label || interval;
+    const option = intervalOptions.find(opt => opt.value === interval);
+    return option ? t(`intervals.${option.short}`) : interval;
   };
 
   if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Schedules</h1>
-          <p className="text-muted-foreground mt-2">Manage backup schedules and retention policies</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground mt-2">{t('description')}</p>
         </div>
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
@@ -125,15 +128,15 @@ export default function SchedulesPage() {
     <div className="max-w-6xl mx-auto">
       <div className="mb-8 flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Schedules</h1>
-          <p className="text-muted-foreground mt-2">Manage backup schedules and retention policies</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground mt-2">{t('description')}</p>
         </div>
         <button
           onClick={() => setIsAddingNew(true)}
           className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Add Schedule
+          {t('addSchedule')}
         </button>
       </div>
 
@@ -166,7 +169,7 @@ export default function SchedulesPage() {
                         ? 'bg-primary/10 text-primary' 
                         : 'bg-muted text-muted-foreground'
                     }`}>
-                      {schedule.enabled ? 'Active' : 'Paused'}
+                      {schedule.enabled ? t('status.active') : t('status.paused')}
                     </span>
                   </div>
                   <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
@@ -176,7 +179,7 @@ export default function SchedulesPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <RotateCcw className="w-4 h-4" />
-                      Retention: {schedule.retention} backups
+                      {t('retention', { count: schedule.retention })}
                     </div>
                   </div>
                 </div>
@@ -190,14 +193,14 @@ export default function SchedulesPage() {
                       ? 'text-primary hover:bg-primary/10'
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
-                  title={schedule.enabled ? 'Pause schedule' : 'Resume schedule'}
+                  title={schedule.enabled ? t('tooltips.pause') : t('tooltips.resume')}
                 >
                   {schedule.enabled ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                 </button>
                 <button
                   onClick={() => handleDeleteSchedule(schedule.name)}
                   className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                  title="Delete schedule"
+                  title={t('tooltips.delete')}
                 >
                   <Trash2 className="w-5 h-5" />
                 </button>
@@ -209,14 +212,14 @@ export default function SchedulesPage() {
         {(!config?.schedules || config.schedules.length === 0) && !isAddingNew && (
           <div className="text-center py-16 bg-card border border-border border-dashed rounded-lg">
             <Clock className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-medium text-foreground mb-2">No schedules configured</h3>
-            <p className="text-muted-foreground mb-6">Create your first backup schedule to get started</p>
+            <h3 className="text-lg font-medium text-foreground mb-2">{t('empty.title')}</h3>
+            <p className="text-muted-foreground mb-6">{t('empty.description')}</p>
             <button
               onClick={() => setIsAddingNew(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              Add Schedule
+              {t('addSchedule')}
             </button>
           </div>
         )}
@@ -227,7 +230,7 @@ export default function SchedulesPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-card border border-border rounded-lg max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-foreground">Add New Schedule</h2>
+              <h2 className="text-xl font-semibold text-foreground">{t('modal.title')}</h2>
               <button
                 onClick={() => setIsAddingNew(false)}
                 className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
@@ -239,20 +242,20 @@ export default function SchedulesPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Schedule Name
+                  {t('modal.nameLabel')}
                 </label>
                 <input
                   type="text"
                   value={newSchedule.name}
                   onChange={(e) => setNewSchedule({ ...newSchedule, name: e.target.value })}
-                  placeholder="e.g., hourly-backup"
+                  placeholder={t('modal.namePlaceholder')}
                   className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Interval
+                  {t('modal.intervalLabel')}
                 </label>
                 <select
                   value={newSchedule.interval}
@@ -261,7 +264,7 @@ export default function SchedulesPage() {
                 >
                   {intervalOptions.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {t(`intervals.${option.short}`)}
                     </option>
                   ))}
                 </select>
@@ -269,7 +272,7 @@ export default function SchedulesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Retention (number of backups to keep)
+                  {t('modal.retentionLabel')}
                 </label>
                 <input
                   type="number"
@@ -280,7 +283,7 @@ export default function SchedulesPage() {
                   className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Older backups beyond this count will be automatically deleted
+                  {t('modal.retentionHint')}
                 </p>
               </div>
 
@@ -293,7 +296,7 @@ export default function SchedulesPage() {
                   className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                 />
                 <label htmlFor="enabled" className="text-sm text-foreground">
-                  Enable schedule immediately
+                  {t('modal.enabledLabel')}
                 </label>
               </div>
             </div>
@@ -303,7 +306,7 @@ export default function SchedulesPage() {
                 onClick={() => setIsAddingNew(false)}
                 className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
               >
-                Cancel
+                {t('modal.cancel')}
               </button>
               <button
                 onClick={handleAddSchedule}
@@ -313,12 +316,12 @@ export default function SchedulesPage() {
                 {saveConfig.isPending ? (
                   <>
                     <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    Saving...
+                    {t('modal.saving')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    Save Schedule
+                    {t('modal.save')}
                   </>
                 )}
               </button>
