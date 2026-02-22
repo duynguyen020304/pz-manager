@@ -83,7 +83,9 @@
       "Bash(bash /root/zomboid-web-manager/scripts/backup/restore.sh servertest /opt/zomboid-backups/snapshots/30min/servertest/20260215_143409)",
       "Bash(sudo:*)",
       "Bash(/dev/null:*)",
-      "Bash(jq:*)"
+      "Bash(jq:*)",
+      "Bash(git -C /root/zomboid-web-manager log --oneline --since=\"2026-02-15\")",
+      "Bash(git -C /root/zomboid-web-manager diff --name-only HEAD~5)"
     ]
   }
 }

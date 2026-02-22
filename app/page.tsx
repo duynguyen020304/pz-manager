@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import { login } from '@/lib/api';
 import { Shield, Lock, User, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const t = useTranslations('pages.login');
+  const ta = useTranslations('actions');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +23,7 @@ export default function LoginPage() {
       // Use window.location for more reliable navigation after cookie is set
       window.location.href = '/dashboard';
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('loginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -35,10 +38,10 @@ export default function LoginPage() {
               <Shield className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">
-              Zomboid Server Manager
+              {t('title')}
             </h1>
             <p className="text-muted-foreground mt-2 text-center">
-              Manage your Project Zomboid server backups
+              {t('subtitle')}
             </p>
           </div>
 
@@ -48,7 +51,7 @@ export default function LoginPage() {
                 htmlFor="username"
                 className="block text-sm font-medium text-foreground mb-2"
               >
-                Username
+                {t('username')}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -58,7 +61,7 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                  placeholder="Enter username"
+                  placeholder={t('usernamePlaceholder')}
                   disabled={isLoading}
                   autoComplete="username"
                 />
@@ -70,7 +73,7 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="block text-sm font-medium text-foreground mb-2"
               >
-                Password
+                {t('password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -80,7 +83,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                  placeholder="Enter password"
+                  placeholder={t('passwordPlaceholder')}
                   disabled={isLoading}
                   autoComplete="current-password"
                 />
@@ -99,12 +102,12 @@ export default function LoginPage() {
               disabled={isLoading || !username || !password}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-3 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? ta('signingIn') : ta('signIn')}
             </button>
           </form>
 
           <div className="mt-6 text-center text-xs text-muted-foreground">
-            <p>Protected area. Authorized access only.</p>
+            <p>{t('protectedArea')}</p>
           </div>
         </div>
       </div>

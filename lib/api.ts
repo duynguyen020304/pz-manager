@@ -1,4 +1,4 @@
-import { ApiResponse, Server, Snapshot, ServerStats, BackupConfig, RestoreJob, ServerStatus, ServerJob, PZInstallation, ServerModsConfig, ModEntry, UserWithRole, Role } from '@/types';
+import { ApiResponse, Server, Snapshot, ServerStats, BackupConfig, RestoreJob, ServerStatus, ServerJob, PZInstallation, ServerModsConfig, ModEntry, UserWithRole, Role, ApiToken } from '@/types';
 
 const API_BASE = '/api';
 
@@ -689,5 +689,61 @@ export async function applyDifficultyPreset(
 export async function resetServerSandboxVars(serverName: string): Promise<SandboxVarsResponse> {
   return fetchApi(`${API_BASE}/servers/${encodeURIComponent(serverName)}/sandbox-vars`, {
     method: 'DELETE'
+  });
+}
+
+// ============================================
+// API TOKENS
+// ============================================
+
+export interface CreateTokenRequest {
+  name: string;
+  description?: string;
+  scopes?: Record<string, string[]>;
+  expiresInDays?: number;
+}
+
+export interface UpdateTokenRequest {
+  name?: string;
+  description?: string;
+  expiresAt?: Date;
+  scopes?: Record<string, string[]>;
+}
+
+export interface TokenWithRaw extends ApiToken {
+  rawToken?: string; // Only present when first created
+}
+
+export async function getTokens(): Promise<ApiToken[]> {
+  return fetchApi(`${API_BASE}/tokens`);
+}
+
+export async function createToken(request: CreateTokenRequest): Promise<{ token: string; tokenInfo: ApiToken }> {
+  return fetchApi(`${API_BASE}/tokens`, {
+    method: 'POST',
+    body: JSON.stringify(request)
+  });
+}
+
+export async function getToken(tokenId: string): Promise<ApiToken> {
+  return fetchApi(`${API_BASE}/tokens/${encodeURIComponent(tokenId)}`);
+}
+
+export async function updateToken(tokenId: string, request: UpdateTokenRequest): Promise<ApiToken> {
+  return fetchApi(`${API_BASE}/tokens/${encodeURIComponent(tokenId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(request)
+  });
+}
+
+export async function deleteToken(tokenId: string): Promise<{ message: string }> {
+  return fetchApi(`${API_BASE}/tokens/${encodeURIComponent(tokenId)}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function revokeToken(tokenId: string): Promise<{ message: string }> {
+  return fetchApi(`${API_BASE}/tokens/${encodeURIComponent(tokenId)}/revoke`, {
+    method: 'POST'
   });
 }

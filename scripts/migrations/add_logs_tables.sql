@@ -1,5 +1,10 @@
--- Enable TimescaleDB extension (should already be enabled, but ensure)
-CREATE EXTENSION IF NOT EXISTS timescaledb;
+-- Enable TimescaleDB extension (should already be enabled, but ensure safely)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'timescaledb') THEN
+        CREATE EXTENSION timescaledb;
+    END IF;
+END $$;
 
 -- ============================================
 -- BACKUP SYSTEM LOGS

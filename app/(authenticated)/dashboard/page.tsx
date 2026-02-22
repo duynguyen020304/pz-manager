@@ -2,9 +2,9 @@
 
 import { useServers, useConfig, useSnapshots, useAllServerStatus } from '@/hooks/use-api';
 import { useMemo } from 'react';
-import { 
-  Server, 
-  Clock, 
+import {
+  Server,
+  Clock,
   HardDrive,
   Archive,
   RotateCcw,
@@ -21,6 +21,7 @@ import {
 import Link from 'next/link';
 import { Schedule, Snapshot } from '@/types';
 import { ServerStatusDot } from '@/components/ServerStatusBadge';
+import { useTranslations } from 'next-intl';
 
 // Calculate next backup time based on schedule and last backup
 function getNextBackupTime(serverName: string, schedules: Schedule[], snapshots: Snapshot[]): Date | null {
@@ -63,61 +64,61 @@ function getNextBackupTime(serverName: string, schedules: Schedule[], snapshots:
   return nextBackup;
 }
 
-function formatTimeUntil(date: Date | null): string {
-  if (!date) return 'Not scheduled';
-  
+function formatTimeUntil(date: Date | null, t: (key: string) => string): string {
+  if (!date) return t('pages.dashboard.notScheduled');
+
   const now = new Date();
   const diff = date.getTime() - now.getTime();
-  
-  if (diff < 0) return 'Overdue';
-  
+
+  if (diff < 0) return t('status.overdue');
+
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  
+
   if (hours > 24) {
     const days = Math.floor(hours / 24);
-    return `in ${days}d ${hours % 24}h`;
+    return `${t('common.in')} ${days}${t('common.days')} ${hours % 24}${t('common.hours')}`;
   }
   if (hours > 0) {
-    return `in ${hours}h ${minutes}m`;
+    return `${t('common.in')} ${hours}${t('common.hours')} ${minutes}${t('common.minutes')}`;
   }
-  return `in ${minutes}m`;
+  return `${t('common.in')} ${minutes}${t('common.minutes')}`;
 }
 
-function formatLastBackup(date: Date | null): string {
-  if (!date || date.getTime() === 0) return 'Never';
-  
+function formatLastBackup(date: Date | null, t: (key: string) => string): string {
+  if (!date || date.getTime() === 0) return t('common.never');
+
   const now = new Date();
   const diff = now.getTime() - date.getTime();
-  
+
   const minutes = Math.floor(diff / (1000 * 60));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return 'Just now';
+
+  if (days > 0) return `${days}${t('common.days')} ${t('common.ago')}`;
+  if (hours > 0) return `${hours}${t('common.hours')} ${t('common.ago')}`;
+  if (minutes > 0) return `${minutes}${t('common.minutes')} ${t('common.ago')}`;
+  return t('common.justNow');
 }
 
-function formatCronToHumanReadable(interval: string): string {
+function formatCronToHumanReadable(interval: string, t: (key: string) => string): string {
   const cronMap: Record<string, string> = {
-    '*/5 * * * *': 'Every 5 min',
-    '*/10 * * * *': 'Every 10 min',
-    '*/30 * * * *': 'Every 30 min',
-    '0 * * * *': 'Hourly',
-    '0 0 * * *': 'Daily',
-    '0 1 * * *': 'Daily',
-    '0 2 * * *': 'Daily',
-    '0 3 * * *': 'Daily',
-    '0 0 * * 0': 'Weekly',
-    '0 1 * * 0': 'Weekly',
-    '0 2 * * 0': 'Weekly',
-    '0 3 * * 0': 'Weekly',
-    '0 4 * * 0': 'Weekly',
-    '@hourly': 'Hourly',
-    '@daily': 'Daily',
-    '@weekly': 'Weekly',
+    '*/5 * * * *': t('intervals.5min'),
+    '*/10 * * * *': t('intervals.10min'),
+    '*/30 * * * *': t('intervals.30min'),
+    '0 * * * *': t('intervals.hourly'),
+    '0 0 * * *': t('intervals.daily'),
+    '0 1 * * *': t('intervals.daily'),
+    '0 2 * * *': t('intervals.daily'),
+    '0 3 * * *': t('intervals.daily'),
+    '0 0 * * 0': t('intervals.weekly'),
+    '0 1 * * 0': t('intervals.weekly'),
+    '0 2 * * 0': t('intervals.weekly'),
+    '0 3 * * 0': t('intervals.weekly'),
+    '0 4 * * 0': t('intervals.weekly'),
+    '@hourly': t('intervals.hourly'),
+    '@daily': t('intervals.daily'),
+    '@weekly': t('intervals.weekly'),
   };
   return cronMap[interval] || interval;
 }
@@ -126,9 +127,10 @@ export default function DashboardPage() {
   const { data: servers, isLoading: serversLoading } = useServers();
   const { data: config, isLoading: configLoading } = useConfig();
   const { data: serverStatuses, isLoading: statusLoading } = useAllServerStatus();
-  
+  const t = useTranslations();
   // Get snapshots for the first server to calculate next backup times
   const firstServer = servers?.[0]?.name || '';
+
   const { data: snapshots } = useSnapshots(firstServer);
 
   const enabledSchedules = config?.schedules.filter(s => s.enabled) || [];
@@ -289,14 +291,14 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-2 text-sm whitespace-nowrap">
                             <CheckCircle2 className="w-4 h-4 text-primary" />
                             <span className="text-muted-foreground">
-                              {formatLastBackup(lastBackup ? new Date(lastBackup) : null)}
+                              {formatLastBackup(lastBackup ? new Date(lastBackup) : null, t)}
                             </span>
                           </div>
                         </td>
                         <td className="px-6 py-4 min-w-[100px]">
                           <div className="flex items-center gap-2 text-sm whitespace-nowrap">
                             <Clock className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-foreground">{formatTimeUntil(nextBackup)}</span>
+                            <span className="text-foreground">{formatTimeUntil(nextBackup, t)}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -391,7 +393,7 @@ export default function DashboardPage() {
                       <div className="w-2 h-2 bg-primary rounded-full" />
                       <span className="text-sm text-foreground capitalize">{schedule.name}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{formatCronToHumanReadable(schedule.interval)}</span>
+                    <span className="text-xs text-muted-foreground">{formatCronToHumanReadable(schedule.interval, t)}</span>
                   </div>
                 ))}
               </div>

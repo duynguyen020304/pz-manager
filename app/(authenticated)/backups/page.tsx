@@ -2,6 +2,7 @@
 
 import { useServers, useSnapshots, useDeleteSnapshot } from '@/hooks/use-api';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Server,
   HardDrive,
@@ -19,6 +20,7 @@ export default function BackupsPage() {
   const [selectedSchedule, setSelectedSchedule] = useState<string>('');
   const [snapshotToDelete, setSnapshotToDelete] = useState<Snapshot | null>(null);
   const [rollbackServer, setRollbackServer] = useState<string | null>(null);
+  const t = useTranslations('pages.backups');
   
   const { data: servers } = useServers();
   const { data: snapshots, isLoading: snapshotsLoading } = useSnapshots(
@@ -44,9 +46,9 @@ export default function BackupsPage() {
   return (
     <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Backups</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
             <p className="text-muted-foreground mt-2">
-              Browse and manage backup snapshots
+              {t('description')}
             </p>
           </div>
 
@@ -56,14 +58,14 @@ export default function BackupsPage() {
               {/* Server Select */}
               <div className="flex-1">
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Server
+                  {t('filters.server')}
                 </label>
                 <select
                   value={selectedServer}
                   onChange={(e) => setSelectedServer(e.target.value)}
                   className="w-full px-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                 >
-                  <option value="">Select a server...</option>
+                  <option value="">{t('filters.serverPlaceholder')}</option>
                   {servers?.map((server) => (
                     <option key={server.name} value={server.name}>
                       {server.name}
@@ -75,14 +77,14 @@ export default function BackupsPage() {
               {/* Schedule Filter */}
               <div className="flex-1">
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Schedule
+                  {t('filters.schedule')}
                 </label>
                 <select
                   value={selectedSchedule}
                   onChange={(e) => setSelectedSchedule(e.target.value)}
                   className="w-full px-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
                 >
-                  <option value="">All schedules</option>
+                  <option value="">{t('filters.allSchedules')}</option>
                   {schedules.map((schedule) => (
                     <option key={schedule} value={schedule}>
                       {schedule}
@@ -98,8 +100,8 @@ export default function BackupsPage() {
             {!selectedServer ? (
               <div className="text-center py-16">
                 <Server className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-medium text-foreground mb-2">Select a server</h3>
-                <p className="text-muted-foreground">Choose a server to view its backups</p>
+                <h3 className="text-lg font-medium text-foreground mb-2">{t('empty.selectServer.title')}</h3>
+                <p className="text-muted-foreground">{t('empty.selectServer.description')}</p>
               </div>
             ) : snapshotsLoading ? (
               <div className="p-8 space-y-4">
@@ -112,11 +114,11 @@ export default function BackupsPage() {
                 <table className="w-full">
                   <thead className="bg-muted/50 border-b border-border">
                     <tr>
-                      <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Timestamp</th>
-                      <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Schedule</th>
-                      <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Size</th>
-                      <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Files</th>
-                      <th className="text-right px-6 py-3 text-sm font-medium text-muted-foreground">Actions</th>
+                      <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">{t('table.timestamp')}</th>
+                      <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">{t('table.schedule')}</th>
+                      <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">{t('table.size')}</th>
+                      <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">{t('table.files')}</th>
+                      <th className="text-right px-6 py-3 text-sm font-medium text-muted-foreground">{t('table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -151,14 +153,14 @@ export default function BackupsPage() {
                                 setRollbackServer(selectedServer);
                               }}
                               className="p-2 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-md transition-colors"
-                              title="Rollback to this snapshot"
+                              title={t('tooltips.rollback')}
                             >
                               <RotateCcw className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => setSnapshotToDelete(snapshot)}
                               className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                              title="Delete snapshot"
+                              title={t('tooltips.delete')}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -172,7 +174,7 @@ export default function BackupsPage() {
             ) : (
               <div className="text-center py-16">
                 <FileArchive className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No backups found</h3>
+                <h3 className="text-lg font-medium text-foreground mb-2">{t('empty.noBackups.title')}</h3>
                 <p className="text-muted-foreground">
                   No snapshots available for this server{selectedSchedule && ` with schedule "${selectedSchedule}"`}
                 </p>
@@ -184,17 +186,17 @@ export default function BackupsPage() {
           {selectedServer && snapshots && snapshots.length > 0 && (
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Total Snapshots</p>
+                <p className="text-sm text-muted-foreground">{t('summary.totalSnapshots')}</p>
                 <p className="text-2xl font-bold text-foreground">{snapshots.length}</p>
               </div>
               <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Total Size</p>
+                <p className="text-sm text-muted-foreground">{t('summary.totalSize')}</p>
                 <p className="text-2xl font-bold text-foreground">
                   {formatBytes(snapshots.reduce((sum, s) => sum + s.size, 0))}
                 </p>
               </div>
               <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Latest Backup</p>
+                <p className="text-sm text-muted-foreground">{t('summary.latestBackup')}</p>
                 <p className="text-lg font-bold text-foreground">
                   {snapshots[0]?.formattedTimestamp || 'N/A'}
                 </p>
@@ -210,20 +212,20 @@ export default function BackupsPage() {
               <div className="w-10 h-10 bg-destructive/10 rounded-full flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-destructive" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">Delete Snapshot?</h2>
+              <h2 className="text-xl font-semibold text-foreground">{t('modal.deleteTitle')}</h2>
             </div>
 
             <div className="space-y-3 mb-6">
               <p className="text-muted-foreground">
-                Are you sure you want to delete this snapshot?
+                {t('modal.confirmMessage')}
               </p>
               <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-                <p><strong className="text-foreground">Date:</strong> {snapshotToDelete.formattedTimestamp}</p>
-                <p><strong className="text-foreground">Schedule:</strong> {snapshotToDelete.schedule}</p>
-                <p><strong className="text-foreground">Size:</strong> {snapshotToDelete.formattedSize}</p>
+                <p><strong className="text-foreground">{t('modal.details.date')}</strong> {snapshotToDelete.formattedTimestamp}</p>
+                <p><strong className="text-foreground">{t('modal.details.schedule')}</strong> {snapshotToDelete.schedule}</p>
+                <p><strong className="text-foreground">{t('modal.details.size')}</strong> {snapshotToDelete.formattedSize}</p>
               </div>
               <p className="text-sm text-destructive">
-                This action cannot be undone.
+                {t('modal.warning')}
               </p>
             </div>
 
@@ -232,14 +234,14 @@ export default function BackupsPage() {
                 onClick={() => setSnapshotToDelete(null)}
                 className="flex-1 px-4 py-2 border border-border rounded-md text-foreground hover:bg-muted transition-colors"
               >
-                Cancel
+                {t('modal.cancel')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteSnapshot.isPending}
                 className="flex-1 px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-md transition-colors disabled:opacity-50"
               >
-                {deleteSnapshot.isPending ? 'Deleting...' : 'Delete'}
+                {deleteSnapshot.isPending ? t('modal.deleting') : t('modal.delete')}
               </button>
             </div>
           </div>

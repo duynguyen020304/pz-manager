@@ -609,3 +609,59 @@ export function useResetServerSandboxVars() {
     }
   });
 }
+
+// ============================================
+// API TOKENS
+// ============================================
+
+export function useTokens() {
+  return useQuery({
+    queryKey: ['tokens'],
+    queryFn: api.getTokens
+  });
+}
+
+export function useCreateToken() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: api.CreateTokenRequest) => api.createToken(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tokens'] });
+    }
+  });
+}
+
+export function useUpdateToken() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ tokenId, request }: { tokenId: string; request: api.UpdateTokenRequest }) =>
+      api.updateToken(tokenId, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tokens'] });
+    }
+  });
+}
+
+export function useDeleteToken() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (tokenId: string) => api.deleteToken(tokenId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tokens'] });
+    }
+  });
+}
+
+export function useRevokeToken() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (tokenId: string) => api.revokeToken(tokenId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tokens'] });
+    }
+  });
+}

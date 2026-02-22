@@ -1,5 +1,10 @@
--- Enable TimescaleDB extension
-CREATE EXTENSION IF NOT EXISTS timescaledb;
+-- Enable TimescaleDB extension (safely check first)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'timescaledb') THEN
+        CREATE EXTENSION timescaledb;
+    END IF;
+END $$;
 
 -- ============================================
 -- ROLES TABLE (RBAC System)

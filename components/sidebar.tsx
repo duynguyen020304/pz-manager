@@ -16,27 +16,31 @@ import {
   Users,
   UserCog,
   Activity,
-  X
+  X,
+  Key
 } from 'lucide-react';
 import { logout } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/components/providers/sidebar-provider';
+import { useTranslations } from 'next-intl';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Servers', href: '/servers', icon: Server },
-  { name: 'Monitor', href: '/monitor', icon: Activity },
-  { name: 'Schedules', href: '/schedules', icon: Clock },
-  { name: 'Logs', href: '/logs', icon: FileText },
-  { name: 'Accounts', href: '/accounts', icon: Users },
-  { name: 'Roles', href: '/roles', icon: UserCog },
-  { name: 'Settings', href: '/settings', icon: Settings },
+const navItems = [
+  { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { key: 'servers', href: '/servers', icon: Server },
+  { key: 'monitor', href: '/monitor', icon: Activity },
+  { key: 'schedules', href: '/schedules', icon: Clock },
+  { key: 'logs', href: '/logs', icon: FileText },
+  { key: 'accounts', href: '/accounts', icon: Users },
+  { key: 'roles', href: '/roles', icon: UserCog },
+  { key: 'tokens', href: '/tokens', icon: Key },
+  { key: 'settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { isCollapsed, toggle, isMobileMenuOpen, setMobileMenuOpen } = useSidebar();
   const router = useRouter();
+  const t = useTranslations('navigation');
 
   const shouldShowCollapsed = !isMobileMenuOpen && isCollapsed;
 
@@ -45,7 +49,7 @@ export function Sidebar() {
       await logout();
       router.push('/');
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error(t('logoutFailed'), error);
     }
   };
 
@@ -78,10 +82,10 @@ export function Sidebar() {
                 {!shouldShowCollapsed && (
                   <div>
                     <h1 className="text-lg font-bold text-foreground leading-tight">
-                      Zomboid
+                      {t('zomboid')}
                     </h1>
                     <p className="text-[10px] text-muted-foreground">
-                      Backup Manager
+                      {t('backupManager')}
                     </p>
                   </div>
                 )}
@@ -90,7 +94,7 @@ export function Sidebar() {
                 <button
                   onClick={() => setMobileMenuOpen(false)}
                   className="lg:hidden p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                  aria-label="Close sidebar"
+                  aria-label={t('closeSidebar')}
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -100,16 +104,17 @@ export function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 p-3 space-y-1">
-            {navigation.map((item) => {
+            {navItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               const Icon = item.icon;
-              
+              const label = t(item.key);
+
               return (
                 <Link
-                  key={item.name}
+                  key={item.key}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  title={shouldShowCollapsed ? item.name : undefined}
+                  title={shouldShowCollapsed ? label : undefined}
                   className={`flex items-center rounded-md transition-all duration-200 group relative min-h-[44px] ${
                     shouldShowCollapsed ? 'justify-center px-2' : 'justify-start gap-3 px-4'
                   } ${
@@ -120,11 +125,11 @@ export function Sidebar() {
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
                   {!shouldShowCollapsed && (
-                    <span className="font-medium text-sm leading-none">{item.name}</span>
+                    <span className="font-medium text-sm leading-none">{label}</span>
                   )}
                   {shouldShowCollapsed && (
                     <div className="absolute left-full ml-2 px-2 py-1 bg-card border border-border rounded-md text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                      {item.name}
+                      {label}
                     </div>
                   )}
                 </Link>
@@ -140,7 +145,7 @@ export function Sidebar() {
                 <button
                   onClick={toggle}
                   className="w-full flex justify-center py-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                  title="Expand sidebar"
+                  title={t('expand')}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -152,11 +157,11 @@ export function Sidebar() {
                 <button
                   onClick={handleLogout}
                   className="w-full flex justify-center py-2 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive group relative"
-                  title="Logout"
+                  title={t('logout')}
                 >
                   <LogOut className="w-4 h-4" />
                   <div className="absolute left-full ml-2 px-2 py-1 bg-card border border-border rounded-md text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                    Logout
+                    {t('logout')}
                   </div>
                 </button>
               </div>
@@ -167,7 +172,7 @@ export function Sidebar() {
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
                     <User className="w-4 h-4 text-primary" />
                   </div>
-                  <span className="font-medium text-sm text-foreground">Admin</span>
+                  <span className="font-medium text-sm text-foreground">{t('admin')}</span>
                 </div>
 
                 {/* Action buttons */}
@@ -176,7 +181,7 @@ export function Sidebar() {
                   <button
                     onClick={toggle}
                     className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                    title="Collapse sidebar"
+                    title={t('collapse')}
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -185,7 +190,7 @@ export function Sidebar() {
                   <button
                     onClick={handleLogout}
                     className="p-2 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                    title="Logout"
+                    title={t('logout')}
                   >
                     <LogOut className="w-4 h-4" />
                   </button>

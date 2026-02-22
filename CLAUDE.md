@@ -24,14 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 cd /root/zomboid-web-manager
 npm install
 npm run dev          # http://localhost:3001
-npm test             # Run tests (watch mode)
-npm run test:run     # Tests (CI mode)
-npm run test:ui      # Tests with UI
 npm run lint         # Run ESLint
-
-# Single test file
-npx vitest run __tests__/unit/lib/user-manager.test.ts
-npx vitest run --grep "pattern"  # Tests matching pattern
 
 # Production
 systemctl start zomboid-web-manager
@@ -42,6 +35,7 @@ journalctl -u zomboid-web-manager -f
 npm run db:start     # Start TimescaleDB container
 npm run db:stop      # Stop container
 npm run db:reset     # Reset database volumes only (down -v + up -d)
+npm run db:migrate   # Run migrations and seed data
 ```
 
 ## Technology Stack
@@ -53,12 +47,13 @@ npm run db:reset     # Reset database volumes only (down -v + up -d)
 - **TanStack React Query 5** - Server state management
 - **PostgreSQL with TimescaleDB** - Users, roles, sessions, audit logs, time-series data
 - **bcryptjs** - Password hashing (10 rounds)
+- **next-intl** - Internationalization (i18n) for multi-language support
+- **next-themes** - Dark/light theme switching
 - **tmux** - Server session management
 - **steamcmd** - Workshop mod downloads
 - **@dnd-kit** - Drag-and-drop mod ordering UI
 - **Recharts** - Data visualization charts
 - **EventSource** - Server-Sent Events for real-time log streaming
-- **Vitest** - Unit testing with pg-mem
 
 ## Architecture
 
@@ -81,6 +76,7 @@ Component → useQuery/useMutation → lib/api.ts → API route → lib/business
 
 **Authentication:**
 - Session-based with HTTP-only cookies (24-hour expiry)
+- API Token (PAT) authentication for programmatic access
 - No middleware file - validation at API route level
 - `getUserByUsernameWithRole()` for authentication
 
@@ -92,13 +88,41 @@ zomboid-web-manager/
 ├── components/               # React components (providers, UI)
 ├── hooks/                    # React Query hooks (use-api.ts, use-api-users.ts)
 ├── lib/                      # Business logic (server-manager, parsers, etc.)
+├── i18n/                     # Internationalization config (next-intl)
+├── messages/                 # Translation files (en.json, vi.json, zh.json)
 ├── scripts/
 │   ├── backup/               # Bash backup scripts (paths-config.sh, backup.sh)
 │   ├── deploy.sh             # Production deployment
 │   └── setup.sh              # Initial setup
-├── __tests__/                # Vitest tests (pg-mem for unit tests)
 └── types/index.ts            # TypeScript definitions
 ```
+
+## Internationalization (i18n)
+
+**Configuration:**
+- **Config**: `i18n/config.ts` - Locale definitions (en, zh, vi)
+- **Request**: `i18n/request.ts` - Request-level i18n setup
+- **Translations**: `messages/{locale}.json` - Translation files
+
+**Usage:**
+```typescript
+// Server Component
+import { getTranslations } from 'next-intl/server';
+const t = await getTranslations('namespace');
+
+// Client Component
+import { useTranslations } from 'next-intl';
+const t = useTranslations('namespace');
+```
+
+**Supported Locales:**
+- `en` - English (default)
+- `zh` - Chinese
+- `vi` - Vietnamese
+
+**Components:**
+- `LanguageSwitcher` - Dropdown to change locale
+- `locale` cookie stores user preference
 
 ## Centralized Path Management
 
@@ -147,6 +171,7 @@ SERVER_CACHE_BASE="${SERVER_CACHE_BASE:-/root/server-cache}"
 | `roles` | RBAC with JSONB permissions |
 | `users` | User accounts (bcrypt passwords) |
 | `sessions` | Server-side session storage |
+| `api_tokens` | Personal Access Tokens for API auth |
 | `audit_logs` | Audit trail (TimescaleDB hypertable) |
 | `backup_logs` | Backup/restore operations (TimescaleDB) |
 | `pz_player_events` | Player login/logout/death |
@@ -181,13 +206,39 @@ SERVER_CACHE_BASE="${SERVER_CACHE_BASE:-/root/server-cache}"
 ```
 Wildcard: `{ "*": ["*"] }` grants all permissions.
 
+## API Token Authentication (PAT)
+
+**Token Format:** `zomboid_{32-char-hex}_{8-char-checksum}`
+
+**Features:**
+- Scoped tokens with granular permissions (JSONB scopes)
+- Expiration support (optional)
+- Last used tracking with IP address
+- Max 10 active tokens per user
+- SHA-256 hashed storage (only shown once on creation)
+
+**API Token Manager** (`lib/api-token-manager.ts`):
+- `generateApiToken()` - Creates new token
+- `createApiToken(userId, input)` - Store token with metadata
+- `getTokenWithUser(tokenHash)` - Validate and get user info
+- `updateTokenLastUsed(tokenId, ip)` - Update usage tracking
+- `revokeApiToken(tokenId, userId)` - Soft delete (deactivate)
+
+**API Endpoints:**
+- `GET /api/tokens` - List user's tokens
+- `POST /api/tokens` - Create new token
+- `PATCH /api/tokens/[id]` - Update token (name, desc, scopes, expiry)
+- `DELETE /api/tokens/[id]` - Revoke token
+
+**Authentication Header:** `Authorization: Bearer {token}`
+
 ## Per-Server Isolation (CACHEDIR)
 
-**Status**: ✅ **All servers migrated to CACHEDIR isolation** (as of 2026-02-15)
+**Status**: All servers migrated to CACHEDIR isolation
 
 **Previous Problem**: All servers wrote to `/root/Zomboid/Logs/`, making log attribution impossible. Backup system was backing up stale data from legacy paths.
 
-**Solution**: Use `-cachedir` parameter to isolate each server's data. All servers now use CACHEDIR by default.
+**Solution**: Use `-cachedir` parameter to isolate each server's data.
 
 ### How It Works
 
@@ -208,76 +259,29 @@ Wildcard: `{ "*": ["*"] }` grants all permissions.
 └── steamapps/      # Workshop downloads
 ```
 
-**Migrated Servers**:
-- ✅ `servertest` - 83MB (5,535 world files)
-- ✅ `duypzserver` - 982MB (206,716 world files)
-
-**Legacy Data**: Archived to `/root/Zomboid-archive/` (35GB) - can be deleted after verification period
-
-### Implementation
-
-**lib/paths.ts**: `SERVER_CACHE_DIR(serverName)`, `SERVER_LOGS_PATH(serverName)` - CACHEDIR only, no legacy fallback
-**lib/server-manager.ts**: Creates cache dir, adds `-cachedir` to startup
-**lib/parsers/base-parser.ts**: `getLogPaths(serverName)` for server-specific paths, `getParserConfigs(serverName)` for parsers
-**lib/log-watcher.ts**: Uses `getLogPaths(serverName)` per server, `getBackupSystemParserConfigs()` for global logs
-
-**Benefits**:
-1. Complete log isolation per server
-2. Accurate log attribution in database
-3. Backups now target current data (not stale)
-4. Independent mod/workshop installations
-5. Clean separation for debugging
+**Implementation:**
+- `lib/paths.ts`: `SERVER_CACHE_DIR(serverName)`, `SERVER_LOGS_PATH(serverName)`
+- `lib/server-manager.ts`: Creates cache dir, adds `-cachedir` to startup
+- `lib/parsers/base-parser.ts`: `getLogPaths(serverName)` for server-specific paths
 
 ## Server Configuration Management
 
 **Server INI Configuration** (`lib/ini-config-manager.ts`, `lib/ini-utils.ts`):
-- `readIniFile(serverName)` - Parse `{SERVER_CACHE_DIR}/Server/{serverName}.ini` into key-value pairs
-- `writeIniFile(serverName, config)` - Write config, preserving comments from existing file
+- `readIniFile(serverName)` - Parse `{SERVER_CACHE_DIR}/Server/{serverName}.ini`
+- `writeIniFile(serverName, config)` - Write config, preserving comments
 - `updateIniValues(serverName, updates)` - Partial update of specific keys
-- `getIniValue(serverName, key)` / `setIniValue(serverName, key, value)` - Single key operations
 
 **INI Utilities** (`lib/ini-utils.ts`):
-- `parseIniContent(content)` - Parse INI string to config object (handles # and ; comments)
-- `generateIniContent(config, existingContent)` - Generate INI while preserving comments
-- `parseBooleanValue(value)` / `parseNumberValue(value)` / `booleanToString(bool)` - Type converters
-- `getDefaultIniConfig()` - Returns default config template for new servers
+- `parseIniContent(content)` - Parse INI string to config object
+- `generateIniContent(config, existingContent)` - Generate INI preserving comments
+- `getDefaultIniConfig()` - Default config template for new servers
 
 **API Endpoint**: `GET/POST/DELETE /api/servers/[name]/config`
-- GET: Returns full INI as JSON object
-- POST: Accepts `{ config?: IniConfig, updates?: Record<string, string> }` for full or partial updates
-- DELETE: Resets to empty config (server regenerates defaults on next start)
 
-**UI Components**:
-- `QuickConfigPanel` (`components/servers/quick-config-panel.tsx`) - Slide-out panel with:
-  - RAM allocation sliders (XMS/XMX) with system RAM awareness
-  - Max players stepper control (1-100)
-  - Toggle cards for Public, PVP, Safehouses, Loot Respawn
-  - Link to advanced settings
-- `AdvancedSettingsDrawer` (`components/servers/advanced-settings-drawer.tsx`) - Full 80+ settings with:
-  - Searchable/filterable settings list
-  - Dynamic input types based on key names (bool, number, string)
-  - Reset to defaults functionality
-  - Unsaved changes warning
-
-**Dynamic INI Input** (`components/servers/dynamic-ini-input.tsx`):
-- Auto-detects input type from INI key names:
-  - Boolean: keys ending with "Enabled" or containing "PVP", "Public", "Pause", "Allow"
-  - Number: keys with "Max", "Min", "Port", "Count", "Limit", "Percent"
-  - String: everything else
-- Preserves original INI values when opened
-
-## Server View Modes
-
-**View Toggle** (`components/servers/view-mode-toggle.tsx`):
-- Grid view (default): Card-based layout with visual status indicators
-- List view: Compact table layout with full server details and inline actions
-
-**Server List View** (`components/servers/server-list-view.tsx`):
-- Status badges with animated spinners for starting/stopping
-- Config/DB indicator tags
-- Inline action buttons (Quick Config, Start/Stop, Console, Rollback, Delete)
-- Uptime display for running servers
-- Compact path display with truncation
+**UI Components:**
+- `QuickConfigPanel` - RAM sliders, max players, common toggles
+- `AdvancedSettingsDrawer` - Full 80+ searchable settings
+- `DynamicIniInput` - Auto-detects input type from key names
 
 ## Log Management System
 
@@ -285,28 +289,17 @@ Wildcard: `{ "*": ["*"] }` grants all permissions.
 
 **Log Stream Manager** (`lib/log-stream-manager.ts`):
 - Singleton service using EventEmitter for pub/sub
-- Batches log entries (200ms interval, max 50 entries) to reduce client updates
+- Batches log entries (200ms interval, max 50 entries)
 - Server-specific subscriptions with client tracking
-- Sorted batch delivery by timestamp
 
 **SSE API** (`/api/logs/stream/route.ts`):
 - `GET /api/logs/stream?server={name}&types={csv}&since={iso}`
 - Event types: `initial`, `batch`, `heartbeat`, `error`
 - 5-second heartbeat to keep connections alive
-- Auto-cleanup on client disconnect
 
-**React Hooks**:
-- `useLogStream` (`hooks/use-log-stream.ts`) - SSE connection with:
-  - Exponential backoff reconnection (1s → 30s max)
-  - Timestamp tracking for incremental updates
-  - Separate callbacks for initial and batch events
-- `useUnifiedLogs` (`hooks/use-unified-logs.ts`) - Combines:
-  - Initial query via React Query
-  - Real-time streaming via useLogStream
-  - Automatic sorting and deduplication
-  - 1000-entry limit with oldest entries trimmed
-
-**Integration**: Log watcher calls `logStreamManager.queueEntries()` which batches and emits to SSE clients.
+**React Hooks:**
+- `useLogStream` - SSE connection with exponential backoff reconnection
+- `useUnifiedLogs` - Combines initial query + real-time streaming
 
 ### Parsers (`lib/parsers/`)
 
@@ -321,24 +314,6 @@ Each extends `BaseParser`:
 | `ServerLogParser` | {date}/server.txt | PZServerEvent |
 | `PVPLogParser` | pvp.txt | PZPVPEvent |
 
-**Path Resolution** (`lib/parsers/base-parser.ts`):
-- Server-specific: `getLogPaths(serverName)` function (using CACHEDIR)
-- Backup system logs: `getBackupSystemParserConfigs()` for global backup/restore logs
-- Parser configs: `getParserConfigs(serverName)` - always requires serverName
-
-### Log Manager (`lib/log-manager.ts`)
-
-- `parseAndIngestFile(filePath, parserType, serverName)` - Parse and insert
-- `getUnifiedLogs(filters)` - Query logs from any source
-- `getFilePosition()` / `updateFilePosition()` - Track for incremental parsing
-
-### Log Watcher (`lib/log-watcher.ts`)
-
-- `watchLogFile(filePath, parserType, serverName)` - Watch single file
-- `startWatchingAll(servers)` - Watch all servers (uses `getLogPaths(serverName)`)
-- `startWatchingRunning()` - Auto-detect running servers
-- Debounced ingestion (1s delay), handles log rotation
-
 ## Server Management (`lib/server-manager.ts`)
 
 **Status Detection** (5-second TTL cache):
@@ -347,18 +322,18 @@ Each extends `BaseParser`:
 - Port binding: `ss -ulnp`
 - States: `stopped`, `starting`, `running`, `stopping`
 
-**Port Calculation**:
+**Port Calculation:**
 - Default (16261/16262/27015) if available
 - Index-based: Server at index 1 → 16271/16272/27025
 
-**Starting a Server**:
+**Starting a Server:**
 1. Create cache directory: `{SERVER_CACHE_BASE}/{serverName}`
 2. Create detached tmux session: `tmux new-session -d -s pz-{serverName}`
 3. Send start command with `-cachedir={cacheDir}`
 4. Wait up to 1 hour for process spawn and port binding
 5. Return jobId for progress tracking (can be aborted)
 
-**Stopping a Server**:
+**Stopping a Server:**
 1. Send `save` command (5 second wait)
 2. Send `quit` command
 3. Wait up to 15 seconds for graceful shutdown
@@ -378,7 +353,6 @@ Each extends `BaseParser`:
 **SSE Streaming**: `/api/servers/[name]/console/route.ts`
 - Event types: `connected`, `init`, `log`, `error`
 - Uses `tail -f` for file updates
-- File position tracking for incremental updates
 
 ## Mod Management (`lib/mod-manager.ts`)
 
@@ -386,23 +360,13 @@ Each extends `BaseParser`:
 - `fetchModTitleFromWorkshop(workshopId)` - Scrapes Steam Workshop for mod title
 - `downloadMod(serverName, workshopId)` - Uses steamcmd to download workshop items
 - Steam App ID: 108600
-- Workshop items stored at `{SERVER_CACHE_DIR}/steamapps/workshop/content/108600/{workshopId}/` (per-server CACHEDIR)
+- Workshop items stored at `{SERVER_CACHE_DIR}/steamapps/workshop/content/108600/{workshopId}/`
 
-**Server INI Management** (`{SERVER_CACHE_DIR}/Server/{serverName}.ini`):
+**Server INI Management:**
 - `getServerMods(serverName)` - Parses Mods=, WorkshopItems=, Map= lines
-- `addModToServer()` - Adds workshopId=name to WorkshopItems, modId to Mods
+- `addModToServer()` - Adds workshopId to WorkshopItems, modId to Mods
 - `updateModOrder()` - Reorders Mods= line (drag-and-drop UI via @dnd-kit)
 - `removeModFromServer()` - Removes from both WorkshopItems and Mods
-
-**Mod Validation:**
-- `validateMod(modPath)` - Checks for server/client/shared Lua code
-- `extractModId(modPath)` - Reads from mod.info or infers from directory
-- `extractModName(modPath, workshopId?)` - Fetches from Workshop (primary) or local file
-
-**Drag-and-Drop UI:**
-- Uses `@dnd-kit/core` and `@dnd-kit/sortable`
-- Client components in `/components/servers/`
-- API routes: `/api/servers/[name]/mods`
 
 ## System Monitoring (`lib/system-monitor.ts`)
 
@@ -411,12 +375,11 @@ Each extends `BaseParser`:
 - Configurable polling interval (default: 5s)
 - Smart spike detection optimized for PZ game engine
 - Auto-cleanup based on retention settings
-- Starts in authenticated layout
 
 **Spike Detection** (`lib/spike-detector.ts`):
 - CPU/Memory/Swap: Critical threshold (absolute) + relative spike
 - Network: Relative spike only
-- Sustained detection avoids false positives (2 samples for critical, 15s for warning)
+- Sustained detection avoids false positives
 
 **Monitor Configuration** (database, `lib/monitor-manager.ts`):
 | Setting | Default | Description |
@@ -426,8 +389,6 @@ Each extends `BaseParser`:
 | `retentionHours` | 24 | Metric data retention |
 | `cpuCriticalThreshold` | 90 | Absolute CPU % for critical |
 | `cpuSpikeThresholdPercent` | 50 | Relative CPU spike % |
-| `cpuSpikeSustainedSeconds` | 15 | Seconds above threshold |
-| (Similar for memory, swap, network) | | |
 
 ## Key API Endpoints
 
@@ -439,13 +400,8 @@ Each extends `BaseParser`:
 - `POST /api/servers/[name]/start` - Start server
 - `POST /api/servers/[name]/stop` - Stop server
 - `GET /api/servers/[name]/console` - SSE console stream
-- `GET /api/servers/[name]/config` - Get server INI configuration
-- `POST /api/servers/[name]/config` - Update server INI configuration
-- `DELETE /api/servers/[name]/config` - Reset server configuration to defaults
-- `GET /api/servers/[name]/mods` - Get server mods
-- `POST /api/servers/[name]/mods` - Add mod (workshop URL or ID)
-- `PATCH /api/servers/[name]/mods/order` - Update mod load order
-- `DELETE /api/servers/[name]/mods` - Remove mod
+- `GET/POST/DELETE /api/servers/[name]/config` - Server INI configuration
+- `GET/POST/PATCH/DELETE /api/servers/[name]/mods` - Mod management
 
 **Backups:**
 - `GET /api/servers/[name]/snapshots?schedule=` - List snapshots
@@ -458,7 +414,13 @@ Each extends `BaseParser`:
 - `GET/PATCH/DELETE /api/users/[id]` - Manage user
 - `GET /api/roles` - List all roles
 - `POST /api/roles` - Create custom role
-- `GET/PATCH/DELETE /api/roles/[id]` - Manage role (system roles protected)
+- `GET/PATCH/DELETE /api/roles/[id]` - Manage role
+
+**API Tokens:**
+- `GET /api/tokens` - List tokens
+- `POST /api/tokens` - Create token
+- `PATCH /api/tokens/[id]` - Update token
+- `DELETE /api/tokens/[id]` - Revoke token
 
 **Logs:**
 - `GET /api/logs?source&server&eventType&username&level&from&to&limit&offset` - Unified query
@@ -474,12 +436,13 @@ Each extends `BaseParser`:
 
 **Sidebar:**
 - `/dashboard` - Overview with server status, quick actions
-- `/servers` - Server management (grid/list view, start/stop controls, quick config, auto-detect)
+- `/servers` - Server management (grid/list view, start/stop, quick config)
 - `/monitor` - System performance monitoring
 - `/schedules` - Backup schedule CRUD
 - `/logs` - Unified log viewer with filtering and real-time streaming
 - `/accounts` - User CRUD
 - `/roles` - Role CRUD with permission matrix
+- `/tokens` - API token management (PAT)
 - `/settings` - Tabs: Schedules, Servers, Settings
 
 **Not in Sidebar:**
@@ -494,60 +457,51 @@ Each extends `BaseParser`:
 
 **Route Groups**: `(authenticated)` folder creates protected route group with shared layout
 
-**UI Component Patterns**:
-- **Slide-out Panels/Drawers**: Fixed right-side overlays with backdrop (`QuickConfigPanel`, `AdvancedSettingsDrawer`)
-- **View Mode Toggles**: Segmented control for grid/list view switching (`ViewModeToggle`)
-- **Dynamic Input Types**: Auto-detection from key names (bool/number/string) in `DynamicIniInput`
+**Theme System**: Uses `next-themes` with class-based dark mode. Components use `dark:` prefix for dark mode styles.
+
+**UI Component Patterns:**
+- **Slide-out Panels/Drawers**: Fixed right-side overlays with backdrop
+- **View Mode Toggles**: Segmented control for grid/list view switching
+- **Dynamic Input Types**: Auto-detection from key names (bool/number/string)
 - **Real-Time Updates**: SSE streaming pattern used for console logs and unified log streaming
 
-**Rollback Wizard Flow**:
+**Rollback Wizard Flow:**
 1. Select Server (dropdown with badges)
 2. Select Backup (filterable list with tabs)
 3. Preview (snapshot details + warnings)
 4. Confirm (type server name to prevent accidents)
 5. Progress (3-second polling)
 
-**Error Handling**:
+**Error Handling:**
 - API routes: Try/catch with structured responses
 - Client hooks: React Query error state
 - File ops: Graceful null returns for missing files
 
-## Testing
+## Bun Support
 
-**Framework**: Vitest with jsdom (single-threaded mode)
+Bun is configured as an alternative runtime/package manager:
+- **Config**: `bunfig.toml` - Bun-specific settings
+- **Lockfile**: `bun.lock` - Bun lockfile
+- **Install**: `bun install`
+- **Run**: `bun run dev`
 
-**Test Database** (`__tests__/setup/test-db.ts`):
-- Uses `pg-mem` for in-memory PostgreSQL
-- Full schema mirroring production database
-- Custom `gen_random_uuid()` function registration
-- Auto-seeds system roles (superadmin, admin, operator, viewer)
-
-**Usage**:
-```bash
-npx vitest run __tests__/unit/lib/user-manager.test.ts  # Single file
-npx vitest run --grep "pattern"  # Tests matching pattern
-```
-
-**Important**:
-- Set `USE_REAL_DATABASE=true` to use real database in tests
-- `lib/db.ts` checks `NODE_ENV=test` to use pg-mem adapter
-- Always reset test state in `beforeEach` hooks
+Note: npm is the primary package manager. Bun support is experimental.
 
 ## Code Style Guidelines
 
-**TypeScript**:
+**TypeScript:**
 - Strict mode enabled - always define explicit types
 - Path alias: `@/` for all imports (configured in tsconfig.json)
 - Avoid `any`; use `unknown` with type guards
 - Prefix unused variables with `_` to ignore
 
-**Import Order**:
-1. External dependencies (`@tanstack/react-query`, `lucide-react`)
+**Import Order:**
+1. External dependencies (`@tanstack/react-query`, `lucide-react`, `next-intl`)
 2. Next.js built-ins (`next/server`, `next/navigation`)
 3. Internal types (`@/types`)
 4. Internal components/hooks/lib (`@/components`, `@/hooks`, `@/lib`)
 
-**Naming Conventions**:
+**Naming Conventions:**
 | Type | Convention | Example |
 |------|------------|---------|
 | Files | kebab-case | `mod-manager.ts` |
@@ -557,7 +511,7 @@ npx vitest run --grep "pattern"  # Tests matching pattern
 | Constants | UPPER_SNAKE | `STEAM_APP_ID` |
 | Hooks | camelCase + 'use' prefix | `useServers` |
 
-**React Components**:
+**React Components:**
 - Functional components with hooks only
 - Add `'use client'` directive for client components
 - Destructure props, define interfaces before component
@@ -590,6 +544,7 @@ NODE_ENV=production
 - **Icons**: Lucide React
 - **Components**: `bg-card border border-border rounded-lg`
 - **Sidebar**: Collapsible with icon-only mode and hover tooltips
+- **Theme**: `next-themes` with `dark` class on html element
 
 ## Known Limitations
 
@@ -599,85 +554,3 @@ NODE_ENV=production
 - **Log Watcher**: Must be started manually/integrated for real-time ingestion
 - **Log Stream Manager**: In-memory batch buffers and subscriptions, lost on restart
 - **System Monitor**: In-memory state, lost on restart (auto-restarts in layout)
-
-## Migration History
-
-### 2026-02-16: Server Configuration UI & Real-Time Log Streaming
-
-**New Features Added**:
-1. **Server Configuration Management**: Web UI for editing server INI files
-   - Quick Config Panel with RAM sliders, max players, and common toggles
-   - Advanced Settings Drawer with 80+ editable settings and search
-   - Dynamic input types (boolean toggles, number steppers, text inputs)
-   - API endpoint: `/api/servers/[name]/config` (GET/POST/DELETE)
-   - INI utilities library (`lib/ini-utils.ts`) for parsing/writing INI files
-   - Config manager (`lib/ini-config-manager.ts`) for server-side operations
-
-2. **Real-Time Log Streaming**: SSE-based streaming for live log updates
-   - Log Stream Manager (`lib/log-stream-manager.ts`) with batching (200ms, max 50 entries)
-   - SSE endpoint: `/api/logs/stream?server={name}&types={csv}&since={iso}`
-   - React hooks: `useLogStream`, `useUnifiedLogs` with reconnection logic
-   - 5-second heartbeat, exponential backoff reconnection
-
-3. **Server List/View Modes**: Alternative compact list view
-   - `ViewModeToggle` component for grid/list switching
-   - `ServerListView` component with inline actions and status badges
-   - Better suited for high server counts than card grid
-
-4. **UI Components**:
-   - `RamSlider` - Dual-handle slider for XMS/XMX memory allocation
-   - `StepperControl` - Increment/decrement input for numeric values
-   - `ToggleCard` - Labeled toggle switch with icon and description
-   - `DynamicIniInput` - Auto-detects input type from INI key names
-   - `CollapsibleSection` - Expandable/collapsible content sections
-
-**Files Added**:
-- `app/api/logs/stream/route.ts` - SSE streaming endpoint
-- `app/api/servers/[name]/config/route.ts` - Server config API
-- `lib/ini-config-manager.ts` - Server-side INI operations
-- `lib/ini-utils.ts` - Client/server INI utilities
-- `lib/log-stream-manager.ts` - Real-time log batching
-- `hooks/use-log-stream.ts` - SSE connection hook
-- `hooks/use-unified-logs.ts` - Combined query + streaming
-- `components/servers/quick-config-panel.tsx`
-- `components/servers/advanced-settings-drawer.tsx`
-- `components/servers/dynamic-ini-input.tsx`
-- `components/servers/server-list-view.tsx`
-- `components/servers/view-mode-toggle.tsx`
-- `components/ui/ram-slider.tsx`
-- `components/ui/stepper-control.tsx`
-- `components/ui/toggle-card.tsx`
-- `components/ui/collapsible-section.tsx`
-
-### 2026-02-15: CACHEDIR Migration & Backup System Relocation
-
-**Problem Discovered**: Backup system was backing up stale/old data from legacy paths for CACHEDIR servers.
-
-**Changes Made**:
-1. **All servers migrated to CACHEDIR**: `servertest`, `duypzserver` now use `-cachedir` parameter
-2. **Backup system relocated**: `/root/Zomboid/backup-system/` → `/opt/zomboid-backups/` (34GB)
-3. **Legacy data archived**: 35GB of old Saves, Logs, Server, db moved to `/root/Zomboid-archive/`
-4. **Code simplified**: Removed backward compatibility, all paths now CACHEDIR-only
-5. **Parser configs updated**: Now require `serverName` parameter, separated backup system configs
-
-**Files Modified**:
-- `scripts/backup/backup.sh` - Always use CACHEDIR save paths
-- `scripts/backup/restore.sh` - Always restore to CACHEDIR location
-- `scripts/backup/paths-config.sh` - Updated `BACKUP_SYSTEM_ROOT`, `SERVER_CACHE_BASE`
-- `lib/paths.ts` - Removed legacy path fallbacks, updated backup paths
-- `lib/parsers/base-parser.ts` - `getParserConfigs(serverName)`, `getBackupSystemParserConfigs()`
-- `lib/log-watcher.ts` - Use new parser config functions
-- `backup-config.json` - Updated `snapshotsPath`
-
-**Current State**:
-- All servers use CACHEDIR isolation at `/root/server-cache/{serverName}/`
-- Backup system operates independently at `/opt/zomboid-backups/`
-- Legacy paths archived at `/root/Zomboid-archive/` (safe to delete after verification period)
-- `/root/Zomboid/` now empty (except `.claude` settings)
-
-**Testing Performed**:
-- ✅ Backup script creates snapshots from CACHEDIR location
-- ✅ Restore script restores to CACHEDIR location
-- ✅ Database integrity verification (players.db, vehicles.db)
-- ✅ Checksum verification
-- ✅ Emergency backup creation

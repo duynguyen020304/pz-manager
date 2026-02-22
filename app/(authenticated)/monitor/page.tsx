@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
@@ -179,6 +180,7 @@ function SpikeBadge({ severity }: { severity: SystemSpike['severity'] }) {
 }
 
 export default function MonitorPage() {
+  const t = useTranslations('pages.monitor');
   const queryClient = useQueryClient();
   const [historyHours, setHistoryHours] = useState(1);
 
@@ -222,10 +224,10 @@ export default function MonitorPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Performance Monitoring
+            {t('title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Real-time system performance metrics and spike detection
+            {t('description')}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -235,7 +237,7 @@ export default function MonitorPage() {
                 status?.isRunning ? 'bg-green-500' : 'bg-destructive'
               }`}
             />
-            {status?.isRunning ? 'Monitoring Active' : 'Monitoring Inactive'}
+            {status?.isRunning ? t('status.active') : t('status.inactive')}
           </div>
           <Button
             variant="secondary"
@@ -244,7 +246,7 @@ export default function MonitorPage() {
             onClick={handleRefresh}
             isLoading={metricsLoading}
           >
-            Refresh
+            {t('actions.refresh')}
           </Button>
         </div>
       </div>
@@ -252,7 +254,7 @@ export default function MonitorPage() {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="CPU Usage"
+          title={t('metrics.cpu')}
           value={
             metrics?.cpuPercent !== null
               ? `${metrics?.cpuPercent?.toFixed(1) || 0}%`
@@ -269,7 +271,7 @@ export default function MonitorPage() {
         />
 
         <MetricCard
-          title="Memory Usage"
+          title={t('metrics.memory')}
           value={
             metrics?.memoryPercent !== null
               ? `${metrics?.memoryPercent?.toFixed(1) || 0}%`
@@ -288,7 +290,7 @@ export default function MonitorPage() {
         />
 
         <MetricCard
-          title="Swap Usage"
+          title={t('metrics.swap')}
           value={
             metrics?.swapPercent !== null
               ? `${metrics?.swapPercent?.toFixed(1) || 0}%`
@@ -305,7 +307,7 @@ export default function MonitorPage() {
         />
 
         <MetricCard
-          title="Network I/O"
+          title={t('metrics.network')}
           value={
             metrics?.networkRxSec !== null
               ? formatBytesPerSec(metrics?.networkRxSec || 0)
@@ -326,7 +328,7 @@ export default function MonitorPage() {
       <div className="bg-card rounded-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-foreground">
-            Performance History
+            {t('chart.title')}
           </h2>
           <div className="flex items-center gap-2">
             {[
@@ -413,7 +415,7 @@ export default function MonitorPage() {
           </div>
         ) : (
           <div className="h-64 flex items-center justify-center text-muted-foreground">
-            No historical data available
+            {t('chart.noData')}
           </div>
         )}
       </div>
@@ -424,10 +426,10 @@ export default function MonitorPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-foreground">
-                Recent Spike Events
+                {t('spikes.title')}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Detected performance spikes in the last 24 hours
+                {t('spikes.description')}
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -435,7 +437,7 @@ export default function MonitorPage() {
                 <p className="text-2xl font-bold text-foreground">
                   {spikesData?.stats.total || 0}
                 </p>
-                <p className="text-xs text-muted-foreground">Total spikes</p>
+                <p className="text-xs text-muted-foreground">{t('spikes.total')}</p>
               </div>
             </div>
           </div>
@@ -446,13 +448,13 @@ export default function MonitorPage() {
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
                 <span className="text-sm text-muted-foreground">
-                  Warning: {spikesData.stats.bySeverity.warning || 0}
+                  {t('spikes.warning')}: {spikesData.stats.bySeverity.warning || 0}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-destructive" />
                 <span className="text-sm text-muted-foreground">
-                  Critical: {spikesData.stats.bySeverity.critical || 0}
+                  {t('spikes.critical')}: {spikesData.stats.bySeverity.critical || 0}
                 </span>
               </div>
             </div>
@@ -464,19 +466,19 @@ export default function MonitorPage() {
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Time
+                  {t('table.time')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Metric
+                  {t('table.metric')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Severity
+                  {t('table.severity')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Change
+                  {t('table.change')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Duration
+                  {t('table.duration')}
                 </th>
               </tr>
             </thead>
@@ -533,7 +535,7 @@ export default function MonitorPage() {
                     colSpan={5}
                     className="px-6 py-8 text-center text-muted-foreground"
                   >
-                    No spike events detected in the last 24 hours
+                    {t('spikes.empty')}
                   </td>
                 </tr>
               )}
