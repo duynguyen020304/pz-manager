@@ -1,0 +1,570 @@
+{
+  "metadata": {
+    "title": "Trình Quản Lý Máy Chủ Zomboid",
+    "description": "Quản lý sao lưu và cấu hình máy chủ Project Zomboid"
+  },
+  "navigation": {
+    "dashboard": "Bảng Điều Khiển",
+    "servers": "Máy Chủ",
+    "monitor": "Giám Sát",
+    "schedules": "Lịch Trình",
+    "logs": "Nhật Ký",
+    "accounts": "Tài Khoản",
+    "roles": "Vai Trò",
+    "tokens": "Token API",
+    "settings": "Cài Đặt",
+    "backups": "Sao Lưu",
+    "rollback": "Khôi Phục",
+    "logout": "Đăng Xuất",
+    "collapse": "Thu gọn thanh bên",
+    "expand": "Mở rộng thanh bên",
+    "closeSidebar": "Đóng thanh bên",
+    "zomboid": "Zomboid",
+    "backupManager": "Trình Quản Lý Sao Lưu"
+  },
+  "breadcrumbs": {
+    "home": "Trang Chủ",
+    "dashboard": "Bảng Điều Khiển",
+    "servers": "Máy Chủ",
+    "schedules": "Lịch Trình",
+    "logs": "Nhật Ký",
+    "settings": "Cài Đặt"
+  },
+  "common": {
+    "loading": "Đang tải",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "save": "Lưu",
+    "create": "Tạo",
+    "add": "Thêm",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa",
+    "remove": "Gỡ bỏ",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "refresh": "Làm mới",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "previous": "Trước",
+    "confirm": "Xác nhận",
+    "submit": "Gửi",
+    "yes": "Có",
+    "no": "Không",
+    "on": "Bật",
+    "off": "Tắt",
+    "enabled": "Đã bật",
+    "disabled": "Đã tắt",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "never": "Chưa bao giờ",
+    "justNow": "Vừa xong",
+    "ago": "trước",
+    "in": "trong",
+    "minutes": "phút",
+    "hours": "giờ",
+    "days": "ngày",
+    "viewAll": "Xem tất cả",
+    "manage": "Quản lý",
+    "showing": "Hiển thị",
+    "to": "đến",
+    "of": "cứng",
+    "page": "Trang",
+    "user": "Người dùng",
+    "admin": "Quản trị viên",
+    "description": "Mô tả",
+    "name": "Tên",
+    "changeLanguage": "Thay đổi ngôn ngữ",
+    "open": "Mở"
+  },
+  "actions": {
+    "signIn": "Đăng Nhập",
+    "signingIn": "Đang đăng nhập...",
+    "startServer": "Khởi Động Máy Chủ",
+    "stopServer": "Dừng Máy Chủ",
+    "starting": "Đang khởi động...",
+    "stopping": "Đang dừng...",
+    "openConsole": "Mở Bảng Điều Khiển",
+    "rollbackServer": "Khôi Phục Máy Chủ",
+    "configureSettings": "Cấu Hình Cài Đặt",
+    "manageMods": "Quản Lý Mod",
+    "addServer": "Thêm Máy Chủ",
+    "addUser": "Thêm Ngườii Dùng",
+    "createToken": "Tạo Token",
+    "revoke": "Thu hồi",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép",
+    "restore": "Khôi phục",
+    "backupNow": "Sao Lưu Ngay",
+    "trigger": "Kích hoạt",
+    "ingest": "Nhập",
+    "watch": "Theo dõi",
+    "stopWatching": "Dừng",
+    "startOver": "Bắt đầu lại",
+    "tryAgain": "Thử lại",
+    "detectServers": "Phát Hiện Máy Chủ",
+    "createRole": "Tạo Vai Trò"
+  },
+  "status": {
+    "running": "Đang chạy",
+    "stopped": "Đã dừng",
+    "starting": "Đang khởi động...",
+    "stopping": "Đang dừng...",
+    "online": "Trực tuyến",
+    "offline": "Ngoại tuyến",
+    "valid": "Hợp lệ",
+    "invalid": "Không hợp lệ",
+    "systemOnline": "Hệ thống trực tuyến",
+    "healthy": "Khỏe mạnh",
+    "overdue": "Quá hạn",
+    "notScheduled": "Chưa lên lịch",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "revoked": "Đã thu hồi",
+    "expired": "Đã hết hạn",
+    "completed": "Hoàn thành",
+    "failed": "Thất bại",
+    "pending": "Đang chờ",
+    "inProgress": "Đang thực hiện",
+    "current": "Hiện tại"
+  },
+  "pages": {
+    "login": {
+      "title": "Trình Quản Lý Máy Chủ Zomboid",
+      "subtitle": "Quản lý sao lưu máy chủ Project Zomboid của bạn",
+      "username": "Tên đăng nhập",
+      "password": "Mật khẩu",
+      "usernamePlaceholder": "Nhập tên đăng nhập",
+      "passwordPlaceholder": "Nhập mật khẩu",
+      "loginFailed": "Đăng nhập thất bại",
+      "protectedArea": "Khu vực được bảo vệ. Chỉ cho phép truy cập được ủy quyền.",
+      "logoutFailed": "Đăng xuất thất bại"
+    },
+    "dashboard": {
+      "title": "Bảng Điều Khiển",
+      "description": "Tổng quan về hệ thống sao lưu Project Zomboid của bạn",
+      "stats": {
+        "totalServers": "Tổng Số Máy Chủ",
+        "runningServers": "Máy Chủ Đang Chạy",
+        "activeSchedules": "Lịch Trình Hoạt Động",
+        "storageUsed": "Dung Lượng Đã Dùng",
+        "retentionCount": "Số Lượng Giữ Lại"
+      },
+      "servers": {
+        "title": "Máy Chủ",
+        "server": "Máy chủ",
+        "status": "Trạng thái",
+        "lastBackup": "Sao Lưu Cuối",
+        "nextBackup": "Sao Lưu Tiếp Theo",
+        "actions": "Hành động",
+        "noServers": "Chưa cấu hình máy chủ",
+        "addServer": "Thêm máy chủ"
+      },
+      "quickActions": {
+        "title": "Thao Tác Nhanh",
+        "restoreBackup": {
+          "label": "Khôi Phục Sao Lưu",
+          "description": "Khôi phục về snapshot trước đó"
+        },
+        "addServer": {
+          "label": "Thêm Máy Chủ",
+          "description": "Cấu hình máy chủ mới để sao lưu"
+        },
+        "editSchedules": {
+          "label": "Chỉnh Sửa Lịch Trình",
+          "description": "Quản lý khoảng thờii gian sao lưu"
+        }
+      },
+      "activeSchedules": "Lịch Trình Hoạt Động",
+      "noActiveSchedules": "Không có lịch trình hoạt động",
+      "manageSchedules": "Quản lý lịch trình"
+    },
+    "servers": {
+      "title": "Máy Chủ",
+      "description": "Quản lý máy chủ Project Zomboid của bạn",
+      "noServersConfigured": "Chưa cấu hình máy chủ",
+      "addFirstServer": "Thêm máy chủ đầu tiên để bắt đầu quản lý sao lưu và thao tác.",
+      "gridView": "Dạng lưới",
+      "listView": "Dạng danh sách",
+      "config": "Cấu hình",
+      "db": "CSDL",
+      "ini": "INI",
+      "pid": "PID",
+      "uptime": "Thờii gian chạy",
+      "port": "Cổng",
+      "valid": "Hợp lệ",
+      "closeMenu": "Đóng menu",
+      "openMenu": "Mở menu"
+    },
+    "accounts": {
+      "title": "Tài Khoản",
+      "description": "Quản lý ngườii dùng và vai trò của họ",
+      "stats": {
+        "totalUsers": "Tổng Số Ngườii Dùng",
+        "activeUsers": "Ngườii Dùng Hoạt Động",
+        "inactiveUsers": "Ngườii Dùng Không Hoạt Động"
+      },
+      "search": {
+        "placeholder": "Tìm kiếm ngườii dùng..."
+      },
+      "filters": {
+        "allRoles": "Tất Cả Vai Trò",
+        "allStatus": "Tất Cả Trạng Thái"
+      },
+      "table": {
+        "user": "Ngườii dùng",
+        "role": "Vai trò",
+        "status": "Trạng thái",
+        "lastLogin": "Đăng nhập cuối",
+        "actions": "Hành động"
+      },
+      "noUsers": "Không tìm thấy ngườii dùng",
+      "noUsersMatch": "Không có ngườii dùng phù hợp với bộ lọc",
+      "addFirstUser": "Thêm ngườii dùng đầu tiên",
+      "noRole": "Không có vai trò"
+    },
+    "roles": {
+      "title": "Vai Trò",
+      "description": "Quản lý vai trò và quyền hạn",
+      "stats": {
+        "total": "Tổng Số Vai Trò",
+        "system": "Vai Trò Hệ Thống",
+        "custom": "Vai Trò Tùy Chỉnh"
+      },
+      "about": {
+        "title": "Về Vai Trò",
+        "systemRolesCannotDelete": "Không thể xóa hoặc đổi tên vai trò hệ thống",
+        "superadminAccess": "Superadmin có quyền truy cập đầy đủ vào tất cả tính năng",
+        "changesImmediate": "Thay đổi quyền vai trò áp dụng ngay lập tức cho tất cả ngườii dùng có vai trò đó",
+        "deleteRemoves": "Xóa vai trò sẽ gỡ bỏ khỏi tất cả ngườii dùng được chỉ định"
+      },
+      "noRoles": "Không tìm thấy vai trò",
+      "createFirstRole": "Tạo vai trò đầu tiên"
+    },
+    "tokens": {
+      "title": "Token API",
+      "description": "Quản lý token truy cập cá nhân để xác thực API",
+      "yourTokens": "Token Của Bạn",
+      "createToken": "Tạo Token Mới",
+      "tokenName": "Tên Token",
+      "tokenNamePlaceholder": "ví dụ: API Sản Xuất",
+      "tokenDescription": "Mô tả",
+      "tokenDescriptionPlaceholder": "Mô tả tùy chọn cho token này",
+      "expiration": "Hết Hạn",
+      "expirationOptions": {
+        "never": "Không bao giờ",
+        "30days": "30 ngày",
+        "60days": "60 ngày",
+        "90days": "90 ngày",
+        "6months": "6 tháng",
+        "1year": "1 năm"
+      },
+      "tokenCreated": "Token đã được tạo thành công",
+      "copyNow": "Sao chép token này ngay bây giờ. Bạn sẽ không thể xem lại nó.",
+      "security": {
+        "title": "Thực Hành Bảo Mật Tốt Nhất",
+        "shownOnce": "Token chỉ hiển thị một lần tại thờii điểm tạo",
+        "storeSecurely": "Lưu trữ token an toàn và không bao giờ chia sẻ",
+        "useExpiration": "Sử dụng ngày hết hạn để tăng cường bảo mật",
+        "revokeUnused": "Thu hồi token bạn không còn cần"
+      },
+      "noTokens": "Chưa có token API",
+      "createFirstToken": "Tạo token truy cập cá nhân đầu tiên để xác thực API",
+      "created": "Đã tạo",
+      "expires": "Hết hạn",
+      "lastUsed": "Sử dụng cuối",
+      "ip": "IP",
+      "modal": {
+        "revokeTitle": "Thu Hồi Token",
+        "revokeMessage": "Bạn có chắc muốn thu hồi token này? Ứng dụng nào đang sử dụng token này sẽ mất quyền truy cập ngay lập tức.",
+        "deleteTitle": "Xóa Token",
+        "deleteMessage": "Bạn có chắc muốn xóa vĩnh viễn token này? Hành động này không thể hoàn tác.",
+        "confirmRevoke": "Thu hồi",
+        "confirmDelete": "Xóa"
+      }
+    },
+    "logs": {
+      "title": "Nhật Ký",
+      "description": "Xem thao tác sao lưu, sự kiện ngườii chơi, trò chuyện và hoạt động máy chủ",
+      "server": "Máy chủ",
+      "running": "Đang chạy",
+      "all": "Tất cả",
+      "selectServers": "Chọn máy chủ để theo dõi",
+      "noLogs": "Không tìm thấy nhật ký",
+      "adjustFilters": "Thử điều chỉnh bộ lọc",
+      "ingestPrompt": "Chưa có nhật ký được nhập. Nhấp \"Nhập\" để phân tích tệp nhật ký.",
+      "watching": {
+        "title": "Đang theo dõi {count} tệp",
+        "stop": "Dừng"
+      }
+    },
+    "settings": {
+      "title": "Cài Đặt",
+      "description": "Quản lý lịch trình sao lưu, máy chủ và cài đặt hệ thống",
+      "tabs": {
+        "schedules": "Lịch Trình",
+        "servers": "Máy Chủ",
+        "monitoring": "Giám Sát",
+        "settings": "Cài Đặt",
+        "rollback": "Khôi Phục"
+      },
+      "schedules": {
+        "title": "Lịch Trình Sao Lưu",
+        "description": "Cấu hình khi nào tạo sao lưu và giữ chúng trong bao lâu",
+        "retention": "Giữ Lại",
+        "nextRun": "Lần chạy tiếp theo",
+        "timerNotCreated": "Bộ hẹn giờ chưa được tạo"
+      },
+      "servers": {
+        "title": "Máy Chủ Đã Cấu Hình",
+        "description": "Quản lý máy chủ nào được đưa vào sao lưu",
+        "noServers": "Chưa cấu hình máy chủ",
+        "hint": "Để thêm hoặc xóa máy chủ, hãy sử dụng trang {link}."
+      },
+      "settings": {
+        "title": "Cài Đặt Sao Lưu",
+        "description": "Cấu hình nén và xác minh tính toàn vẹn",
+        "compression": {
+          "title": "Nén",
+          "description": "Nén sao lưu để tiết kiệm dung lượng đĩa",
+          "level": "Mức Độ Nén",
+          "levelDescription": "Mức độ cao hơn = tệp nhỏ hơn nhưng sao lưu chậm hơn",
+          "fast": "Nhanh",
+          "balanced": "Cân bằng",
+          "max": "Nén Tối Đa"
+        },
+        "integrity": {
+          "title": "Xác Minh Tính Toàn Vẹn",
+          "description": "Xác minh tính toàn vẹn sao lưu bằng checksum",
+          "verifyAfterBackup": "Xác minh sau sao lưu",
+          "verifyAfterBackupDesc": "Kiểm tra tính toàn vẹn ngay sau khi tạo sao lưu",
+          "verifyAfterRestore": "Xác minh sau khôi phục",
+          "verifyAfterRestoreDesc": "Kiểm tra tính toàn vẹn sau khi khôi phục từ sao lưu"
+        }
+      },
+      "rollback": {
+        "title": "Tự Động Khôi Phục Khi Ngườii Chơi Chết",
+        "description": "Tự động khôi phục máy chủ về trạng thái trước đó khi ngườii chơi chết",
+        "enable": "Bật Tự Động Khôi Phục",
+        "enableDesc": "Tự động khôi phục khi ngườii chơi chết",
+        "snapshotSchedule": "Lịch Trình Snapshot",
+        "snapshotScheduleDesc": "Lịch trình sao lưu nào để sử dụng cho khôi phục",
+        "cooldown": "Thờii Gian Chờ",
+        "cooldownDesc": "Số phút chờ trước khi có thể khôi phục lại",
+        "notifyPlayers": "Thông Báo Ngườii Chơi",
+        "notifyPlayersDesc": "Gửi tin nhắn máy chủ khi tự động khôi phục xảy ra",
+        "warning": {
+          "title": "Cảnh Báo Quan Trọng",
+          "message": "Tự động khôi phục sẽ khôi phục toàn bộ máy chủ về trạng thái trước đó khi bất kỳ ngườii chơi nào chết. Điều này sẽ hoàn tác tất cả tiến trình kể từ khi snapshot được chọn được tạo. Hãy sử dụng cẩn thận và đảm bảo bật sao lưu thường xuyên."
+        }
+      },
+      "monitoring": {
+        "title": "Giám Sát Hiệu Suất",
+        "description": "Cấu hình giám sát hiệu suất hệ thống và phát hiện đột biến",
+        "enable": "Bật Giám Sát",
+        "enableDesc": "Thu thập số liệu hiệu suất hệ thống",
+        "pollingInterval": "Khoảng Thờii Gian Thăm Dò",
+        "pollingIntervalDesc": "Tần suất thu thập số liệu (giây)",
+        "pollingRecommendation": "Khuyến nghị: 5 giây cho giám sát thờii gian thực, 30+ giây để giảm sử dụng tài nguyên",
+        "dataRetention": "Giữ Dữ Liệu",
+        "dataRetentionDesc": "Thờii gian giữ lịch sử số liệu (ngày)",
+        "retentionNote": "Số liệu cũ sẽ tự động bị xóa. Giá trị thấp hơn giảm kích thước cơ sở dữ liệu.",
+        "spikeDetection": "Phát Hiện Đột Biến",
+        "spikeDetectionDesc": "Tự động phát hiện đột biến hiệu suất",
+        "cpuSpikeThreshold": "Ngưỡng Đột Biến CPU",
+        "cpuCriticalThreshold": "Ngưỡng Tới Hạn CPU",
+        "memorySpikeThreshold": "Ngưỡng Đột Biến Bộ Nhớ",
+        "memoryCriticalThreshold": "Ngưỡng Tới Hạn Bộ Nhớ",
+        "sustained": "duy trì",
+        "spikeNote": "Phát hiện đột biến được tối ưu hóa cho máy chủ Project Zomboid. Thuật toán sử dụng phát hiện duy trì (nhiều mẫu liên tiếp) để tránh báo động giả từ đột biến CPU ngẫu nhiên của trò chơi. Điều chỉnh ngưỡng trong cơ sở dữ liệu nếu cần."
+      }
+    },
+    "rollbackWizard": {
+      "title": "Trình Hướng Dẫn Khôi Phục",
+      "description": "Khôi phục máy chủ Project Zomboid của bạn từ snapshot sao lưu",
+      "steps": {
+        "selectServer": {
+          "title": "Chọn Máy Chủ",
+          "description": "Chọn máy chủ để khôi phục"
+        },
+        "selectBackup": {
+          "title": "Chọn Sao Lưu",
+          "description": "Chọn snapshot để khôi phục"
+        },
+        "preview": {
+          "title": "Xem Trước",
+          "description": "Xem chi tiết snapshot và cảnh báo"
+        },
+        "confirm": {
+          "title": "Xác Nhận",
+          "description": "Xác nhận thao tác khôi phục"
+        },
+        "progress": {
+          "title": "Tiến Trình",
+          "description": "Theo dõi tiến trình khôi phục"
+        }
+      },
+      "starting": "Đang khởi động...",
+      "restoreServer": "Khôi Phục Máy Chủ"
+    },
+    "schedules": {
+      "title": "Schedules",
+      "description": "Manage backup schedules and retention policies",
+      "addSchedule": "Add Schedule",
+      "intervals": {
+        "5min": "Every 5 min",
+        "10min": "Every 10 min",
+        "30min": "Every 30 min",
+        "hourly": "Hourly",
+        "daily": "Daily",
+        "weekly": "Weekly"
+      },
+      "status": {
+        "active": "Active",
+        "paused": "Paused"
+      },
+      "retention": "Retention: {count} backups",
+      "empty": {
+        "title": "No schedules configured",
+        "description": "Create your first backup schedule to get started"
+      },
+      "modal": {
+        "title": "Add New Schedule",
+        "nameLabel": "Schedule Name",
+        "namePlaceholder": "e.g., hourly-backup",
+        "intervalLabel": "Interval",
+        "retentionLabel": "Retention (number of backups to keep)",
+        "retentionHint": "Older backups beyond this count will be automatically deleted",
+        "enabledLabel": "Enable schedule immediately",
+        "cancel": "Cancel",
+        "save": "Save Schedule",
+        "saving": "Saving..."
+      },
+      "tooltips": {
+        "pause": "Pause schedule",
+        "resume": "Resume schedule",
+        "delete": "Delete schedule"
+      },
+      "errors": {
+        "addFailed": "Failed to add schedule",
+        "deleteFailed": "Failed to delete schedule",
+        "updateFailed": "Failed to update schedule"
+      }
+    },
+    "backups": {
+      "title": "Backups",
+      "description": "Browse and manage backup snapshots",
+      "filters": {
+        "server": "Server",
+        "serverPlaceholder": "Select a server...",
+        "schedule": "Schedule",
+        "allSchedules": "All schedules"
+      },
+      "table": {
+        "timestamp": "Timestamp",
+        "schedule": "Schedule",
+        "size": "Size",
+        "files": "Files",
+        "actions": "Actions"
+      },
+      "empty": {
+        "selectServer": {
+          "title": "Select a server",
+          "description": "Choose a server to view its backups"
+        },
+        "noBackups": {
+          "title": "No backups found",
+          "description": "No snapshots available for this server"
+        }
+      },
+      "tooltips": {
+        "rollback": "Rollback to this snapshot",
+        "delete": "Delete snapshot"
+      },
+      "summary": {
+        "totalSnapshots": "Total Snapshots",
+        "totalSize": "Total Size",
+        "latestBackup": "Latest Backup"
+      },
+      "modal": {
+        "deleteTitle": "Delete Snapshot?",
+        "confirmMessage": "Are you sure you want to delete this snapshot?",
+        "details": {
+          "date": "Date:",
+          "schedule": "Schedule:",
+          "size": "Size:"
+        },
+        "warning": "This action cannot be undone.",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "deleting": "Deleting..."
+      }
+    },
+    "monitor": {
+      "title": "Performance Monitoring",
+      "description": "Real-time system performance metrics and spike detection",
+      "status": {
+        "active": "Monitoring Active",
+        "inactive": "Monitoring Inactive"
+      },
+      "actions": {
+        "refresh": "Refresh"
+      },
+      "metrics": {
+        "cpu": "CPU Usage",
+        "memory": "Memory Usage",
+        "swap": "Swap Usage",
+        "network": "Network I/O",
+        "cores": "{count} cores",
+        "usagePercent": "Usage %"
+      },
+      "chart": {
+        "title": "Performance History",
+        "timeRanges": {
+          "1h": "1h",
+          "6h": "6h",
+          "24h": "24h"
+        },
+        "noData": "No historical data available"
+      },
+      "spikes": {
+        "title": "Recent Spike Events",
+        "description": "Detected performance spikes in the last 24 hours",
+        "total": "Total spikes",
+        "warning": "Warning",
+        "critical": "Critical",
+        "table": {
+          "time": "Time",
+          "metric": "Metric",
+          "severity": "Severity",
+          "change": "Change",
+          "duration": "Duration"
+        },
+        "empty": "No spike events detected in the last 24 hours"
+      }
+    }
+  },
+  "forms": {
+    "required": "Bắt buộc",
+    "optional": "Tùy chọn",
+    "validation": {
+      "required": "Trường này là bắt buộc",
+      "invalid": "Giá trị không hợp lệ"
+    }
+  },
+  "errors": {
+    "failedToLoad": "Tải thất bại",
+    "failedToLoadConfig": "Tải cấu hình thất bại",
+    "failedToLoadMonitoringConfig": "Tải cấu hình giám sát thất bại",
+    "failedToLoadTokens": "Tải token thất bại",
+    "failedToLoadUsers": "Tải ngườii dùng thất bại",
+    "generic": "Đã xảy ra lỗi"
+  },
+  "intervals": {
+    "5min": "Mỗi 5 phút",
+    "10min": "Mỗi 10 phút",
+    "30min": "Mỗi 30 phút",
+    "hourly": "Hàng giờ",
+    "daily": "Hàng ngày",
+    "weekly": "Hàng tuần"
+  }
+}
