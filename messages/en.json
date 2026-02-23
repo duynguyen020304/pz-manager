@@ -74,8 +74,7 @@
     "description": "Description",
     "name": "Name",
     "changeLanguage": "Change Language",
-    "open": "Open",
-    "page": "Page"
+    "open": "Open"
   },
   "actions": {
     "signIn": "Sign In",
@@ -567,5 +566,549 @@
     "hourly": "Hourly",
     "daily": "Daily",
     "weekly": "Weekly"
+  },
+  "components": {
+    "servers": {
+      "sandboxVarsEditor": {
+        "title": "Sandbox Settings",
+        "serverLabel": "Server: {serverName}",
+        "back": "Back",
+        "close": "Close",
+        "searchPlaceholder": "Search settings...",
+        "showingResults": "Showing {filtered} of {total} settings",
+        "noSearchResults": "No settings match your search",
+        "noCategoryResults": "No settings found for this category",
+        "resetToDefaults": "Reset to Defaults",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "saveChanges": "Save Changes",
+        "unsavedChanges": "You have unsaved changes. Are you sure you want to close?",
+        "resetConfirm": "Are you sure you want to reset all settings to defaults?",
+        "categories": {
+          "population": "Population",
+          "time": "Time & Date",
+          "world": "World",
+          "nature": "Nature",
+          "character": "Character",
+          "zombie_lore": "Zombie Lore",
+          "zombie_config": "Zombie Config",
+          "multiplier_config": "XP Multipliers",
+          "loot": "Loot Rarity",
+          "meta": "Meta Events"
+        },
+        "options": {
+          "Zombies": {
+            "label": "Zombie Population",
+            "description": "Overall zombie count"
+          },
+          "Distribution": {
+            "label": "Zombie Distribution",
+            "description": "Urban vs uniform distribution"
+          },
+          "DayLength": {
+            "label": "Day Length",
+            "description": "Real-time per in-game day"
+          },
+          "StartMonth": {
+            "label": "Start Month",
+            "description": "Starting month"
+          },
+          "StartTime": {
+            "label": "Start Time",
+            "description": "Starting time of day"
+          },
+          "WaterShut": {
+            "label": "Water Shutoff",
+            "description": "When water stops working"
+          },
+          "ElecShut": {
+            "label": "Electricity Shutoff",
+            "description": "When power stops working"
+          },
+          "Alarm": {
+            "label": "House Alarms",
+            "description": "Frequency of alarms in houses"
+          },
+          "LockedHouses": {
+            "label": "Locked Houses",
+            "description": "Frequency of locked doors"
+          },
+          "LootRespawn": {
+            "label": "Loot Respawn",
+            "description": "How often loot respawns"
+          },
+          "Temperature": {
+            "label": "Temperature",
+            "description": "Weather temperature"
+          },
+          "Rain": {
+            "label": "Rain",
+            "description": "Frequency of rain"
+          },
+          "ErosionSpeed": {
+            "label": "Erosion Speed",
+            "description": "How fast buildings decay"
+          },
+          "Farming": {
+            "label": "Farming Speed",
+            "description": "Crop growth speed"
+          },
+          "NatureAbundance": {
+            "label": "Foraging/Fishing",
+            "description": "Abundance of wild food"
+          },
+          "XpMultiplier": {
+            "label": "XP Multiplier",
+            "description": "Experience gain rate"
+          },
+          "StatsDecrease": {
+            "label": "Stats Decrease",
+            "description": "How fast hunger/thirst depletes"
+          },
+          "EndRegen": {
+            "label": "Endurance Regen",
+            "description": "How fast endurance recovers"
+          },
+          "StarterKit": {
+            "label": "Starter Kit",
+            "description": "Start with extra items"
+          },
+          "Nutrition": {
+            "label": "Nutrition",
+            "description": "Food nutrition affects health"
+          },
+          "ZombieLore.Speed": {
+            "label": "Zombie Speed",
+            "description": "Movement speed of zombies"
+          },
+          "ZombieLore.Strength": {
+            "label": "Zombie Strength",
+            "description": "Damage dealt by zombies"
+          },
+          "ZombieLore.Toughness": {
+            "label": "Zombie Toughness",
+            "description": "Hit points of zombies"
+          },
+          "ZombieLore.Transmission": {
+            "label": "Infection Type",
+            "description": "How infection spreads"
+          },
+          "ZombieLore.Mortality": {
+            "label": "Infection Mortality",
+            "description": "How deadly the infection is"
+          },
+          "ZombieLore.Sight": {
+            "label": "Zombie Sight",
+            "description": "How well zombies see"
+          },
+          "ZombieLore.Hearing": {
+            "label": "Zombie Hearing",
+            "description": "How well zombies hear"
+          },
+          "ZombieLore.Smell": {
+            "label": "Zombie Smell",
+            "description": "How well zombies smell"
+          },
+          "ZombieLore.ZombiesDragDown": {
+            "label": "Drag Down",
+            "description": "Zombies can drag down players"
+          },
+          "ZombieConfig.PopulationMultiplier": {
+            "label": "Population Multiplier",
+            "description": "Base zombie spawn multiplier"
+          },
+          "ZombieConfig.RespawnHours": {
+            "label": "Respawn Hours",
+            "description": "Hours before zombie respawn"
+          },
+          "ZombieConfig.RallyGroupSize": {
+            "label": "Rally Group Size",
+            "description": "Zombie group size"
+          },
+          "MultiplierConfig.Global": {
+            "label": "Global Multiplier",
+            "description": "Global XP multiplier"
+          },
+          "MultiplierConfig.GlobalToggle": {
+            "label": "Enable Multipliers",
+            "description": "Enable/disable individual skill multipliers"
+          },
+          "MultiplierConfig.Fitness": {
+            "label": "Fitness",
+            "description": "Fitness skill multiplier"
+          },
+          "MultiplierConfig.Strength": {
+            "label": "Strength",
+            "description": "Strength skill multiplier"
+          },
+          "MultiplierConfig.Sprinting": {
+            "label": "Sprinting",
+            "description": "Sprinting skill multiplier"
+          },
+          "MultiplierConfig.Lightfoot": {
+            "label": "Lightfoot",
+            "description": "Lightfoot skill multiplier"
+          },
+          "MultiplierConfig.Nimble": {
+            "label": "Nimble",
+            "description": "Nimble skill multiplier"
+          },
+          "MultiplierConfig.Sneak": {
+            "label": "Sneak",
+            "description": "Sneak skill multiplier"
+          },
+          "MultiplierConfig.Axe": {
+            "label": "Axe",
+            "description": "Axe skill multiplier"
+          },
+          "MultiplierConfig.Blunt": {
+            "label": "Blunt",
+            "description": "Blunt weapons skill multiplier"
+          },
+          "MultiplierConfig.SmallBlunt": {
+            "label": "Small Blunt",
+            "description": "Small blunt weapons skill multiplier"
+          },
+          "MultiplierConfig.LongBlade": {
+            "label": "Long Blade",
+            "description": "Long blade weapons skill multiplier"
+          },
+          "MultiplierConfig.SmallBlade": {
+            "label": "Small Blade",
+            "description": "Small blade weapons skill multiplier"
+          },
+          "MultiplierConfig.Spear": {
+            "label": "Spear",
+            "description": "Spear weapons skill multiplier"
+          },
+          "MultiplierConfig.Maintenance": {
+            "label": "Maintenance",
+            "description": "Maintenance skill multiplier"
+          },
+          "MultiplierConfig.Woodwork": {
+            "label": "Woodwork",
+            "description": "Woodwork skill multiplier"
+          },
+          "MultiplierConfig.Cooking": {
+            "label": "Cooking",
+            "description": "Cooking skill multiplier"
+          },
+          "MultiplierConfig.Farming": {
+            "label": "Farming",
+            "description": "Farming skill multiplier"
+          },
+          "MultiplierConfig.Doctor": {
+            "label": "Doctor",
+            "description": "Doctor skill multiplier"
+          },
+          "MultiplierConfig.Electricity": {
+            "label": "Electricity",
+            "description": "Electricity skill multiplier"
+          },
+          "MultiplierConfig.MetalWelding": {
+            "label": "Metal Welding",
+            "description": "Metal welding skill multiplier"
+          },
+          "MultiplierConfig.Mechanics": {
+            "label": "Mechanics",
+            "description": "Mechanics skill multiplier"
+          },
+          "MultiplierConfig.Tailoring": {
+            "label": "Tailoring",
+            "description": "Tailoring skill multiplier"
+          },
+          "MultiplierConfig.Aiming": {
+            "label": "Aiming",
+            "description": "Aiming skill multiplier"
+          },
+          "MultiplierConfig.Reloading": {
+            "label": "Reloading",
+            "description": "Reloading skill multiplier"
+          },
+          "MultiplierConfig.Fishing": {
+            "label": "Fishing",
+            "description": "Fishing skill multiplier"
+          },
+          "MultiplierConfig.Trapping": {
+            "label": "Trapping",
+            "description": "Trapping skill multiplier"
+          },
+          "MultiplierConfig.PlantScavenging": {
+            "label": "Plant Scavenging",
+            "description": "Plant scavenging skill multiplier"
+          },
+          "MultiplierConfig.FlintKnapping": {
+            "label": "Flint Knapping",
+            "description": "Flint knapping skill multiplier"
+          },
+          "MultiplierConfig.Masonry": {
+            "label": "Masonry",
+            "description": "Masonry skill multiplier"
+          },
+          "MultiplierConfig.Pottery": {
+            "label": "Pottery",
+            "description": "Pottery skill multiplier"
+          },
+          "MultiplierConfig.Carving": {
+            "label": "Carving",
+            "description": "Carving skill multiplier"
+          },
+          "MultiplierConfig.Husbandry": {
+            "label": "Husbandry",
+            "description": "Husbandry skill multiplier"
+          },
+          "MultiplierConfig.Tracking": {
+            "label": "Tracking",
+            "description": "Tracking skill multiplier"
+          },
+          "MultiplierConfig.Blacksmith": {
+            "label": "Blacksmith",
+            "description": "Blacksmith skill multiplier"
+          },
+          "MultiplierConfig.Butchering": {
+            "label": "Butchering",
+            "description": "Butchering skill multiplier"
+          },
+          "MultiplierConfig.Glassmaking": {
+            "label": "Glassmaking",
+            "description": "Glassmaking skill multiplier"
+          },
+          "FoodLoot": {
+            "label": "Food Loot",
+            "description": "Rarity of food items"
+          },
+          "WeaponLoot": {
+            "label": "Weapon Loot",
+            "description": "Rarity of weapons"
+          },
+          "OtherLoot": {
+            "label": "Other Loot",
+            "description": "Rarity of misc items"
+          },
+          "TimeSinceApo": {
+            "label": "Months Since Apocalypse",
+            "description": "Time since outbreak"
+          }
+        },
+        "values": {
+          "insane": "Insane (Max)",
+          "veryHigh": "Very High",
+          "high": "High",
+          "normal": "Normal",
+          "low": "Low (20%)",
+          "urbanFocused": "Urban Focused",
+          "uniform": "Uniform",
+          "15min": "15 minutes",
+          "30min": "30 minutes",
+          "1hour": "1 hour",
+          "2hours": "2 hours",
+          "3hours": "3 hours",
+          "4hours": "4 hours",
+          "5hours": "5 hours",
+          "12hours": "12 hours",
+          "realtime": "Real-time",
+          "january": "January",
+          "february": "February",
+          "march": "March",
+          "april": "April",
+          "may": "May",
+          "june": "June",
+          "july": "July",
+          "august": "August",
+          "september": "September",
+          "october": "October",
+          "november": "November",
+          "december": "December",
+          "7am": "7 AM",
+          "9am": "9 AM",
+          "12pm": "12 PM",
+          "2pm": "2 PM",
+          "5pm": "5 PM",
+          "9pm": "9 PM",
+          "12am": "12 AM",
+          "2am": "2 AM",
+          "5am": "5 AM",
+          "instant": "Instant",
+          "0-30days": "0-30 days",
+          "0-2months": "0-2 months",
+          "0-6months": "0-6 months",
+          "0-1year": "0-1 year",
+          "0-5years": "0-5 years",
+          "6-12months": "6-12 months",
+          "never": "Never",
+          "extremelyRare": "Extremely Rare",
+          "rare": "Rare",
+          "sometimes": "Sometimes",
+          "often": "Often",
+          "veryOften": "Very Often",
+          "none": "None",
+          "everyDay": "Every Day",
+          "everyWeek": "Every Week",
+          "everyMonth": "Every Month",
+          "every2Months": "Every 2 Months",
+          "veryCold": "Very Cold",
+          "cold": "Cold",
+          "hot": "Hot",
+          "veryHot": "Very Hot",
+          "veryFast20": "Very Fast (20 days)",
+          "fast50": "Fast (50 days)",
+          "normal100": "Normal (100 days)",
+          "slow200": "Slow (200 days)",
+          "verySlow500": "Very Slow (500 days)",
+          "veryFast": "Very Fast",
+          "fast": "Fast",
+          "slow": "Slow",
+          "verySlow": "Very Slow",
+          "veryPoor": "Very Poor",
+          "poor": "Poor",
+          "abundant": "Abundant",
+          "veryAbundant": "Very Abundant",
+          "sprinters": "Sprinters",
+          "fastShamblers": "Fast Shamblers",
+          "shamblers": "Shamblers",
+          "superhuman": "Superhuman",
+          "weak": "Weak",
+          "tough": "Tough",
+          "fragile": "Fragile",
+          "bloodSaliva": "Blood/Saliva",
+          "salivaOnly": "Saliva Only",
+          "everyoneInfected": "Everyone Infected",
+          "noTransmission": "No Transmission",
+          "2hoursInfection": "2 hours",
+          "12hoursInfection": "12 hours",
+          "24hours": "24 hours",
+          "3days": "3 days",
+          "1-2weeks": "1-2 weeks",
+          "eagleEyed": "Eagle-eyed",
+          "poorSight": "Poor",
+          "pinpoint": "Pinpoint",
+          "poorHearing": "Poor",
+          "bloodhound": "Bloodhound",
+          "poorSmell": "Poor",
+          "0start": "0 (Start)",
+          "1month": "1 month",
+          "2months": "2 months",
+          "3months": "3 months",
+          "4months": "4 months",
+          "5months": "5 months",
+          "6months": "6 months",
+          "7months": "7 months",
+          "8months": "8 months",
+          "9months": "9 months",
+          "10months": "10 months",
+          "11months": "11 months",
+          "12months": "12 months",
+          "common": "Common"
+        }
+      },
+      "difficultyPresetSelector": {
+        "title": "Difficulty Preset",
+        "description": "Select a difficulty preset to configure zombie behavior, loot rarity, and survival settings.",
+        "active": "Active",
+        "customizeSettings": "Customize individual settings",
+        "applyButton": "Apply Preset",
+        "cancel": "Cancel",
+        "applyConfirmTitle": "Apply {preset} Preset?",
+        "applyConfirmMessage": "This will overwrite your current difficulty settings with the preset values. Any customizations will be lost."
+      },
+      "dynamicIniInput": {
+        "descriptions": {
+          "PublicName": "Server name shown in the public server browser",
+          "PublicDescription": "Description shown in the public server browser",
+          "MaxPlayers": "Maximum number of concurrent players",
+          "PVP": "Enable player vs player combat",
+          "PauseEmpty": "Pause the server when no players are online",
+          "GlobalChat": "Enable global chat (/all command)",
+          "Password": "Password required to join the server",
+          "AdminPassword": "Password for admin access",
+          "SafehouseAllowTrespass": "Allow non-members to enter safehouses",
+          "SafehouseAllowFire": "Allow fire to damage safehouses",
+          "SafehouseAllowLoot": "Allow non-members to loot safehouses",
+          "SafehouseAllowRespawn": "Allow respawning in owned safehouses",
+          "PlayerSafehouse": "Allow players to claim safehouses",
+          "Faction": "Enable faction system",
+          "VoiceEnable": "Enable in-game voice chat",
+          "Voice3D": "Enable 3D positional voice",
+          "SteamVAC": "Enable Valve Anti-Cheat",
+          "Public": "Make server visible in Steam browser",
+          "Mods": "Comma-separated list of mod IDs",
+          "Map": "Map locations to load",
+          "WorkshopItems": "Steam Workshop item IDs",
+          "DefaultPort": "Main game port",
+          "UDPPort": "UDP communication port",
+          "RCONPort": "RCON administration port",
+          "RCONPassword": "RCON access password",
+          "PingLimit": "Maximum ping before kick (ms)",
+          "HoursForLootRespawn": "Hours before loot respawns (0=never)",
+          "ConstructionPreventsLootRespawn": "Player constructions block loot respawn",
+          "DropOffWhiteListAfterDeath": "Remove players from whitelist on death",
+          "NoFire": "Disable all fires",
+          "AnnounceDeath": "Announce player deaths globally",
+          "MinutesPerPage": "Minutes to read one page",
+          "SaveWorldEveryMinutes": "Auto-save interval in minutes (0=never)",
+          "SafehouseDaySurvivedToClaim": "Days survived required to claim safehouse",
+          "SafeHouseRemovalTime": "Hours of inactivity before safehouse removal",
+          "AllowDestructionBySledgehammer": "Allow sledgehammer world destruction",
+          "KickFastPlayers": "Kick players moving too fast",
+          "PlayerRespawnWithSelf": "Respawn at place of death",
+          "FastForwardMultiplier": "Fast-forward speed multiplier",
+          "BloodSplatLifespanDays": "Days blood splats last (0=forever)"
+        }
+      }
+    },
+    "ui": {
+      "ramPresets": {
+        "small": {
+          "label": "Small",
+          "description": "2-8 players"
+        },
+        "medium": {
+          "label": "Medium",
+          "description": "8-20 players"
+        },
+        "large": {
+          "label": "Large",
+          "description": "20-50 players"
+        },
+        "max": {
+          "label": "Max",
+          "description": "50+ players"
+        }
+      },
+      "ramSlider": {
+        "warning": "Allocating {xmx}GB may cause system instability. System has {systemRam}GB total.{danger}"
+      }
+    }
+  },
+  "data": {
+    "difficultyPresets": {
+      "apocalypse": {
+        "label": "Apocalypse",
+        "description": "Stealth focus. Short lifespan. Combat best avoided. The default hardcore experience with realistic combat."
+      },
+      "survivor": {
+        "label": "Survivor",
+        "description": "Powerful combat. Longer lifespan. A challenging playstyle based on PZ's previous Survival mode."
+      },
+      "builder": {
+        "label": "Builder",
+        "description": "Construction, Exploration and Farming focus. A more relaxed experience with 80% fewer zombies."
+      }
+    }
+  },
+  "aria": {
+    "quickConfigure": "Quick configure",
+    "startServer": "Start server",
+    "stopServer": "Stop server",
+    "openConsole": "Open console",
+    "rollback": "Rollback",
+    "deleteServer": "Delete server",
+    "decreaseValue": "Decrease value",
+    "increaseValue": "Increase value",
+    "initialHeap": "Initial heap size (Xms)",
+    "maximumHeap": "Maximum heap size (Xmx)",
+    "gridView": "Grid view",
+    "listView": "List view",
+    "removeMod": "Remove mod"
   }
 }
