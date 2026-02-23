@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { X, Save, RotateCcw, Loader2, Search, ChevronLeft, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useServerSandboxVars, useUpdateServerSandboxVars, useResetServerSandboxVars } from '@/hooks/use-api';
 import { SandboxVars, OptionCategory, SandboxOptionMeta } from '@/lib/sandbox-vars-types';
 
@@ -329,6 +330,8 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
 }
 
 export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: SandboxVarsEditorProps) {
+  const t = useTranslations('components.servers.sandboxVarsEditor');
+
   const { data, isLoading } = useServerSandboxVars(serverName);
   const updateSandboxVars = useUpdateServerSandboxVars();
   const resetSandboxVars = useResetServerSandboxVars();
@@ -377,7 +380,7 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
   };
 
   const handleReset = async () => {
-    if (!confirm('Are you sure you want to reset all settings to defaults?')) {
+    if (!confirm(t('resetConfirm'))) {
       return;
     }
     try {
@@ -389,7 +392,7 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
   };
 
   const handleClose = () => {
-    if (hasChanges && !confirm('You have unsaved changes. Are you sure you want to close?')) {
+    if (hasChanges && !confirm(t('unsavedChanges'))) {
       return;
     }
     onClose();
@@ -481,20 +484,20 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
               <button
                 onClick={onBack}
                 className="p-2 rounded-lg hover:bg-muted transition-colors"
-                aria-label="Back"
+                aria-label={t('back')}
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
             )}
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Sandbox Settings</h2>
-              <p className="text-sm text-muted-foreground">Server: {serverName}</p>
+              <h2 className="text-lg font-semibold text-foreground">{t('title')}</h2>
+              <p className="text-sm text-muted-foreground">{t('serverLabel', { serverName })}</p>
             </div>
           </div>
           <button
             onClick={handleClose}
             className="p-2 rounded-lg hover:bg-muted transition-colors"
-            aria-label="Close"
+            aria-label={t('close')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -514,7 +517,7 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
                   }
                 `}
               >
-                {cat.label}
+                {t(`categories.${cat.id}`)}
               </button>
             ))}
           </div>
@@ -525,7 +528,7 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search settings..."
+              placeholder={t('searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-foreground"
@@ -540,7 +543,7 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Showing {filteredOptions.length} of {allOptionsInTab.length} settings
+            {t('showingResults', { filtered: filteredOptions.length, total: allOptionsInTab.length })}
           </p>
         </div>
 
@@ -554,8 +557,8 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
               <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
                 {searchQuery
-                  ? 'No settings match your search'
-                  : 'No settings found for this category'}
+                  ? t('noSearchResults')
+                  : t('noCategoryResults')}
               </p>
             </div>
           ) : (
@@ -590,7 +593,7 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
               className="w-full px-4 py-2 border border-destructive/50 text-destructive rounded-lg hover:bg-destructive/10 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <RotateCcw className="w-4 h-4" />
-              Reset to Defaults
+              {t('resetToDefaults')}
             </button>
 
             <div className="flex gap-3">
@@ -599,7 +602,7 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
                 className="flex-1 px-4 py-2.5 border border-border rounded-lg hover:bg-muted transition-colors text-sm font-medium"
                 disabled={isSaving}
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={handleSave}
@@ -609,12 +612,12 @@ export function SandboxVarsEditor({ serverName, isOpen, onClose, onBack }: Sandb
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
+                    {t('saving')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    Save Changes
+                    {t('saveChanges')}
                   </>
                 )}
               </button>

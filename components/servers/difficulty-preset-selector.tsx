@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, Zap, Shield, Hammer, Loader2 } from 'lucide-react';
 import { DIFFICULTY_PRESETS } from '@/lib/difficulty-presets';
 import { useApplyDifficultyPreset, useServerSandboxVars } from '@/hooks/use-api';
@@ -14,6 +15,8 @@ export function DifficultyPresetSelector({
   serverName,
   onOpenEditor,
 }: DifficultyPresetSelectorProps) {
+  const t = useTranslations('components.servers.difficultyPresetSelector');
+  const td = useTranslations('data');
   const { isLoading } = useServerSandboxVars(serverName);
   const applyPreset = useApplyDifficultyPreset();
   
@@ -83,14 +86,14 @@ export function DifficultyPresetSelector({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold mb-1">Difficulty Preset</h3>
+        <h3 className="text-lg font-semibold mb-1">{t('title')}</h3>
         <p className="text-sm text-muted-foreground">
-          Select a difficulty preset to configure zombie behavior, loot rarity, and survival settings.
+          {t('description')}
         </p>
       </div>
 
       <div className="grid gap-3">
-        {presetEntries.map(([id, preset]) => (
+        {presetEntries.map(([id]) => (
           <button
             key={id}
             onClick={() => handlePresetChange(id)}
@@ -106,12 +109,12 @@ export function DifficultyPresetSelector({
               {getPresetIcon(id)}
             </div>
             <div className="flex-1">
-              <div className="font-medium">{preset.label}</div>
-              <div className="text-sm opacity-80 mt-1">{preset.description}</div>
+              <div className="font-medium">{td(`difficultyPresets.${id}.label`)}</div>
+              <div className="text-sm opacity-80 mt-1">{td(`difficultyPresets.${id}.description`)}</div>
             </div>
             {selectedPreset === id && (
               <div className="text-xs font-medium px-2 py-1 rounded bg-current/20">
-                Active
+                {t('active')}
               </div>
             )}
           </button>
@@ -123,7 +126,7 @@ export function DifficultyPresetSelector({
           onClick={onOpenEditor}
           className="w-full p-3 rounded-lg border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors text-sm"
         >
-          Customize individual settings
+          {t('customizeSettings')}
         </button>
       )}
 
@@ -131,11 +134,10 @@ export function DifficultyPresetSelector({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card border border-border rounded-lg p-6 max-w-md mx-4">
             <h4 className="text-lg font-semibold mb-2">
-              Apply {DIFFICULTY_PRESETS[pendingPreset]?.label} Preset?
+              {t('applyConfirmTitle', { preset: td(`difficultyPresets.${pendingPreset}.label`) })}
             </h4>
             <p className="text-sm text-muted-foreground mb-4">
-              This will overwrite your current difficulty settings with the preset values.
-              Any customizations will be lost.
+              {t('applyConfirmMessage')}
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -145,7 +147,7 @@ export function DifficultyPresetSelector({
                 }}
                 className="px-4 py-2 rounded-lg border border-border hover:bg-accent transition-colors"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={confirmApplyPreset}
@@ -155,7 +157,7 @@ export function DifficultyPresetSelector({
                 {applyPreset.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  'Apply Preset'
+                  t('applyButton')
                 )}
               </button>
             </div>

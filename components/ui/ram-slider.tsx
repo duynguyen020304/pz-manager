@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface RamSliderProps {
   min?: number;
@@ -14,10 +15,10 @@ interface RamSliderProps {
 }
 
 const RAM_PRESETS = [
-  { label: 'Small', xms: 4, xmx: 6, description: '2-8 players' },
-  { label: 'Medium', xms: 8, xmx: 12, description: '8-20 players' },
-  { label: 'Large', xms: 16, xmx: 24, description: '20-50 players' },
-  { label: 'Max', xms: 24, xmx: 32, description: '50+ players' },
+  { size: 'small', xms: 4, xmx: 6 },
+  { size: 'medium', xms: 8, xmx: 12 },
+  { size: 'large', xms: 16, xmx: 24 },
+  { size: 'max', xms: 24, xmx: 32 },
 ] as const;
 
 export function RamSlider({
@@ -29,6 +30,9 @@ export function RamSlider({
   onChange,
   disabled = false,
 }: RamSliderProps) {
+  const t = useTranslations('aria');
+  const tPresets = useTranslations('components.ui.ramPresets');
+
   const [isDragging, setIsDragging] = useState<'xms' | 'xmx' | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -117,7 +121,7 @@ export function RamSlider({
           const isActive = xms === preset.xms && xmx === preset.xmx;
           return (
             <button
-              key={preset.label}
+              key={preset.size}
               onClick={() => handlePresetClick(preset.xms, preset.xmx)}
               className={`p-3 rounded-lg border text-left transition-all active:scale-95 ${
                 isActive
@@ -126,10 +130,10 @@ export function RamSlider({
               }`}
             >
               <div className="font-medium text-sm text-foreground">
-                {preset.label}
+                {tPresets(`${preset.size}.label`)}
               </div>
               <div className="text-xs text-muted-foreground">
-                {preset.description}
+                {tPresets(`${preset.size}.description`)}
               </div>
               <div className="text-xs text-primary mt-1">
                 {preset.xms}-{preset.xmx}GB
@@ -182,7 +186,7 @@ export function RamSlider({
           onMouseDown={handleMouseDown('xms')}
           onTouchStart={handleTouchStart('xms')}
           role="slider"
-          aria-label="Initial heap size (Xms)"
+          aria-label={t('initialHeap')}
           aria-valuemin={min}
           aria-valuemax={max}
           aria-valuenow={xms}
@@ -198,7 +202,7 @@ export function RamSlider({
           onMouseDown={handleMouseDown('xmx')}
           onTouchStart={handleTouchStart('xmx')}
           role="slider"
-          aria-label="Maximum heap size (Xmx)"
+          aria-label={t('maximumHeap')}
           aria-valuemin={min}
           aria-valuemax={max}
           aria-valuenow={xmx}

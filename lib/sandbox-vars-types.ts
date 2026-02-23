@@ -282,8 +282,8 @@ export type DifficultyPresetId = 'apocalypse' | 'survivor' | 'builder' | 'custom
 
 export interface DifficultyPreset {
   id: DifficultyPresetId;
-  label: string;
-  description: string;
+  label?: string;
+  description?: string;
   config: SandboxVars;
 }
 

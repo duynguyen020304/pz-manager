@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { LayoutGrid, List } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type ViewMode = 'grid' | 'list';
 
@@ -11,6 +12,8 @@ interface ViewModeToggleProps {
 }
 
 export function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
+  const t = useTranslations('aria');
+
   return (
     <div className="flex p-1 bg-muted rounded-lg">
       <button
@@ -20,7 +23,7 @@ export function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
             ? 'bg-card shadow-sm text-foreground'
             : 'text-muted-foreground hover:text-foreground'
         }`}
-        aria-label="Grid view"
+        aria-label={t('gridView')}
         aria-pressed={mode === 'grid'}
       >
         <LayoutGrid className="w-4 h-4" />
@@ -32,7 +35,7 @@ export function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
             ? 'bg-card shadow-sm text-foreground'
             : 'text-muted-foreground hover:text-foreground'
         }`}
-        aria-label="List view"
+        aria-label={t('listView')}
         aria-pressed={mode === 'list'}
       >
         <List className="w-4 h-4" />

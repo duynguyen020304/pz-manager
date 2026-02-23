@@ -15,6 +15,7 @@ import {
   Database,
   FileText,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Server, ServerStatus } from '@/types';
 
 interface ServerListViewProps {
@@ -40,6 +41,8 @@ export function ServerListView({
   onQuickConfig,
   loadingActions = {},
 }: ServerListViewProps) {
+  const t = useTranslations('aria');
+
   const getStatusConfig = (state: ServerStatus['state']) => {
     switch (state) {
       case 'running':
@@ -152,7 +155,7 @@ export function ServerListView({
               <button
                 onClick={() => onQuickConfig(server.name)}
                 className="p-2 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all"
-                aria-label="Quick configure"
+                aria-label={t('quickConfigure')}
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -162,7 +165,7 @@ export function ServerListView({
                   onClick={() => onStart(server.name)}
                   disabled={isLoading}
                   className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
-                  aria-label="Start server"
+                  aria-label={t('startServer')}
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -175,7 +178,7 @@ export function ServerListView({
                   onClick={() => onStop(server.name)}
                   disabled={isLoading || state === 'stopping'}
                   className="p-2 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all disabled:opacity-50"
-                  aria-label="Stop server"
+                  aria-label={t('stopServer')}
                 >
                   {isLoading || state === 'stopping' ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -189,7 +192,7 @@ export function ServerListView({
                 onClick={() => onConsole(server.name)}
                 disabled={state === 'stopped'}
                 className="hidden sm:flex p-2 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all disabled:opacity-50"
-                aria-label="Open console"
+                aria-label={t('openConsole')}
               >
                 <Terminal className="w-4 h-4" />
               </button>
@@ -198,7 +201,7 @@ export function ServerListView({
                 onClick={() => onRollback(server.name)}
                 disabled={state !== 'stopped'}
                 className="hidden sm:flex p-2 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all disabled:opacity-50"
-                aria-label="Rollback"
+                aria-label={t('rollback')}
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -206,7 +209,7 @@ export function ServerListView({
               <button
                 onClick={() => onDelete(server.name)}
                 className="p-2 rounded-lg border border-border hover:border-destructive hover:bg-destructive/10 transition-all text-muted-foreground hover:text-destructive"
-                aria-label="Delete server"
+                aria-label={t('deleteServer')}
               >
                 <Trash2 className="w-4 h-4" />
               </button>

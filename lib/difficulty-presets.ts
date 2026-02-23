@@ -3,8 +3,6 @@ import { DifficultyPreset, SandboxVars } from './sandbox-vars-types';
 export const DIFFICULTY_PRESETS: Record<string, DifficultyPreset> = {
   apocalypse: {
     id: 'apocalypse',
-    label: 'Apocalypse',
-    description: 'Stealth focus. Short lifespan. Combat best avoided. The default hardcore experience with realistic combat.',
     config: {
       VERSION: 4,
       Zombies: 4,
@@ -72,8 +70,6 @@ export const DIFFICULTY_PRESETS: Record<string, DifficultyPreset> = {
   },
   survivor: {
     id: 'survivor',
-    label: 'Survivor',
-    description: 'Powerful combat. Longer lifespan. A challenging playstyle based on PZ\'s previous Survival mode.',
     config: {
       VERSION: 4,
       Zombies: 3,
@@ -141,8 +137,6 @@ export const DIFFICULTY_PRESETS: Record<string, DifficultyPreset> = {
   },
   builder: {
     id: 'builder',
-    label: 'Builder',
-    description: 'Construction, Exploration and Farming focus. A more relaxed experience with 80% fewer zombies.',
     config: {
       VERSION: 4,
       Zombies: 5,

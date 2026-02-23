@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Minus, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface StepperControlProps {
   value: number;
@@ -24,6 +25,8 @@ export function StepperControl({
   description,
   disabled = false,
 }: StepperControlProps) {
+  const t = useTranslations('aria');
+
   const canDecrement = value > min;
   const canIncrement = value < max;
 
@@ -70,7 +73,7 @@ export function StepperControl({
               ? 'border-border bg-card hover:border-primary/50 hover:bg-primary/5'
               : 'border-border/50 bg-muted/50 cursor-not-allowed'
           }`}
-          aria-label="Decrease value"
+          aria-label={t('decreaseValue')}
         >
           <Minus className="w-4 h-4" />
         </button>
@@ -95,7 +98,7 @@ export function StepperControl({
               ? 'border-border bg-card hover:border-primary/50 hover:bg-primary/5'
               : 'border-border/50 bg-muted/50 cursor-not-allowed'
           }`}
-          aria-label="Increase value"
+          aria-label={t('increaseValue')}
         >
           <Plus className="w-4 h-4" />
         </button>

@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, X, AlertCircle } from 'lucide-react';
 import type { ModEntry } from '@/types';
+import { useTranslations } from 'next-intl';
 
 interface SortableModItemProps {
   mod: ModEntry;
@@ -12,6 +13,8 @@ interface SortableModItemProps {
 }
 
 export function SortableModItem({ mod, onRemove, isRemoving }: SortableModItemProps) {
+  const t = useTranslations('aria');
+
   const {
     attributes,
     listeners,
@@ -74,7 +77,7 @@ export function SortableModItem({ mod, onRemove, isRemoving }: SortableModItemPr
         onClick={() => onRemove(mod.workshopId)}
         disabled={isRemoving}
         className="text-muted-foreground hover:text-destructive transition-colors p-1.5 hover:bg-muted rounded-lg disabled:opacity-50"
-        title="Remove mod"
+        title={t('removeMod')}
       >
         {isRemoving ? (
           <div className="w-4 h-4 border-2 border-destructive border-t-transparent rounded-full animate-spin" />

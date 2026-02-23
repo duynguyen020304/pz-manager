@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { ToggleCard } from '@/components/ui/toggle-card';
 import { StepperControl } from '@/components/ui/stepper-control';
 
@@ -63,63 +64,14 @@ export function getLabelFromKey(key: string): string {
 }
 
 /**
- * Get a description for common INI options
- */
-export function getDescriptionForKey(key: string): string | undefined {
-  const descriptions: Record<string, string> = {
-    PublicName: 'Server name shown in the public server browser',
-    PublicDescription: 'Description shown in the public server browser',
-    MaxPlayers: 'Maximum number of concurrent players',
-    PVP: 'Enable player vs player combat',
-    PauseEmpty: 'Pause the server when no players are online',
-    GlobalChat: 'Enable global chat (/all command)',
-    Password: 'Password required to join the server',
-    AdminPassword: 'Password for admin access',
-    SafehouseAllowTrespass: 'Allow non-members to enter safehouses',
-    SafehouseAllowFire: 'Allow fire to damage safehouses',
-    SafehouseAllowLoot: 'Allow non-members to loot safehouses',
-    SafehouseAllowRespawn: 'Allow respawning in owned safehouses',
-    PlayerSafehouse: 'Allow players to claim safehouses',
-    Faction: 'Enable faction system',
-    VoiceEnable: 'Enable in-game voice chat',
-    Voice3D: 'Enable 3D positional voice',
-    SteamVAC: 'Enable Valve Anti-Cheat',
-    Public: 'Make server visible in Steam browser',
-    Mods: 'Comma-separated list of mod IDs',
-    Map: 'Map locations to load',
-    WorkshopItems: 'Steam Workshop item IDs',
-    DefaultPort: 'Main game port',
-    UDPPort: 'UDP communication port',
-    RCONPort: 'RCON administration port',
-    RCONPassword: 'RCON access password',
-    PingLimit: 'Maximum ping before kick (ms)',
-    HoursForLootRespawn: 'Hours before loot respawns (0=never)',
-    ConstructionPreventsLootRespawn: 'Player constructions block loot respawn',
-    DropOffWhiteListAfterDeath: 'Remove players from whitelist on death',
-    NoFire: 'Disable all fires',
-    AnnounceDeath: 'Announce player deaths globally',
-    MinutesPerPage: 'Minutes to read one page',
-    SaveWorldEveryMinutes: 'Auto-save interval in minutes (0=never)',
-    SafehouseDaySurvivedToClaim: 'Days survived required to claim safehouse',
-    SafeHouseRemovalTime: 'Hours of inactivity before safehouse removal',
-    AllowDestructionBySledgehammer: 'Allow sledgehammer world destruction',
-    KickFastPlayers: 'Kick players moving too fast',
-    PlayerRespawnWithSelf: 'Respawn at place of death',
-    FastForwardMultiplier: 'Fast-forward speed multiplier',
-    BloodSplatLifespanDays: 'Days blood splats last (0=forever)',
-  };
-
-  return descriptions[key];
-}
-
-/**
  * Dynamic input component that renders the appropriate input type
  * based on the value content
  */
 export function DynamicIniInput({ keyName, value, onChange }: DynamicIniInputProps) {
+  const t = useTranslations('components.servers.dynamicIniInput.descriptions');
   const type = detectValueType(value);
   const label = getLabelFromKey(keyName);
-  const description = getDescriptionForKey(keyName);
+  const description = t(keyName, { default: '' }) || undefined;
 
   if (type === 'boolean') {
     const boolValue = parseBoolean(value);
